@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "celopedia-skill": {
+      "source": "celo-org/celopedia-skills",
+      "sourceType": "github",
+      "skillPath": "skills/celopedia-skill/SKILL.md",
+      "computedHash": "0e32397b676a3d3c6850c5ed744ba9416db0d0e579ca7a00f9e5e518231cee97"
+    }
+  }
+}
