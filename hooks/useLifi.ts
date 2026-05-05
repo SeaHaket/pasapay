@@ -28,7 +28,7 @@ export function useLifi() {
     toAddress: `0x${string}`;
     token: StablecoinBalance;
     amountRaw: bigint;
-    phpRate: number;
+    exchangeRate: number;
   }) => {
     setStatus("quoting");
     setError(null);
@@ -40,7 +40,7 @@ export function useLifi() {
         fromToken: params.token.address,
         fromDecimals: params.token.decimals,
         amountRaw: params.amountRaw,
-        phpRate: params.phpRate,
+        exchangeRate: params.exchangeRate,
       });
       if (!result) throw new Error("No route found");
       setQuote(result);

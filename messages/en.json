@@ -11,7 +11,7 @@
     "history": "History",
     "recentActivity": "Recent Activity",
     "noTransactions": "No transactions yet",
-    "phpEquivalent": "≈ {amount} PHP",
+    "fiatEquivalent": "≈ {symbol}{amount}",
     "preferredToken": "Preferred: {symbol}",
     "depositPrompt": "Deposit stablecoins to get started",
     "depositButton": "Deposit to MiniPay"
@@ -41,7 +41,7 @@
     "selectToken": "Paying with",
     "youSend": "You send",
     "theyReceive": "They receive",
-    "phpEstimate": "≈ {amount} PHP",
+    "fiatEstimate": "≈ {symbol}{amount}",
     "networkFee": "Network fee",
     "bridgeFee": "Bridge fee",
     "totalFee": "Total fee",

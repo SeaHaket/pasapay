@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Home, Send, Clock, Settings, Wallet, Smartphone, Gift } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -7,12 +7,21 @@ import { useMiniPay } from "@/hooks/useMiniPay";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import BalanceCard from "@/components/BalanceCard";
 import AppHeader from "@/components/AppHeader";
+import { COUNTRIES, getCountryConfig } from "@/config/countries";
 
 export default function HomePage() {
   const t = useTranslations("home");
   const te = useTranslations("errors");
   const { address, isMiniPay, isLoading, balances, preferred, totalUsd } = useMiniPay();
-  const { toLocalFiat } = useExchangeRate("PHP"); // Defaulting to PHP on home screen for now
+  
+  const [countryId, setCountryId] = useState("PH");
+  useEffect(() => {
+    const saved = localStorage.getItem("pp_country");
+    if (saved) setCountryId(saved);
+  }, []);
+
+  const country = getCountryConfig(countryId);
+  const { toLocalFiat } = useExchangeRate(country.currencyCode);
 
   const [previewMode, setPreviewMode] = useState(false);
 

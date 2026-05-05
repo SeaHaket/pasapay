@@ -7,7 +7,7 @@ type Props = {
   balances: StablecoinBalance[];
   preferred: StablecoinBalance | null;
   totalUsd: number;
-  toLocalFiat: (usd: number, symbol: string) => string;
+  toLocalFiat: (usd: number) => string;
   isLoading: boolean;
 };
 
@@ -36,7 +36,7 @@ export default function BalanceCard({ balances, preferred, totalUsd, toLocalFiat
       <div className="balance-card__amount">
         ${totalUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </div>
-      <div className="balance-card__php">{toLocalFiat(totalUsd, "₱")}</div>
+      <div className="balance-card__php">{toLocalFiat(totalUsd)}</div>
 
       {balances.some(b => b.raw > 0n) && (
         <div className="balance-card__token-row">

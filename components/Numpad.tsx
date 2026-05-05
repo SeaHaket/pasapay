@@ -3,14 +3,14 @@
 type Props = {
   value: string;
   onChange: (val: string) => void;
-  phpDisplay?: string;
+  fiatDisplay?: string;
   tokenSymbol?: string;
   maxDecimals?: number;
 };
 
 const KEYS = ["1","2","3","4","5","6","7","8","9",".","0","⌫"];
 
-export default function Numpad({ value, onChange, phpDisplay, tokenSymbol, maxDecimals = 6 }: Props) {
+export default function Numpad({ value, onChange, fiatDisplay, tokenSymbol, maxDecimals = 6 }: Props) {
   function handleKey(key: string) {
     if (key === "⌫") {
       onChange(value.length > 1 ? value.slice(0, -1) : "0");
@@ -36,8 +36,8 @@ export default function Numpad({ value, onChange, phpDisplay, tokenSymbol, maxDe
         <div className="numpad-display__amount">
           ${value}
         </div>
-        {phpDisplay && (
-          <div className="numpad-display__php">≈ {phpDisplay}</div>
+        {fiatDisplay && (
+          <div className="numpad-display__php">≈ {fiatDisplay}</div>
         )}
         {tokenSymbol && (
           <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>

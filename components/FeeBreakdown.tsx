@@ -5,11 +5,11 @@ import type { BridgeQuote } from "@/lib/lifi";
 type Props = {
   networkFeeUsd?: string;
   bridgeQuote?: BridgeQuote | null;
-  toPhp: (usd: number) => string;
+  toLocalFiat: (usd: number) => string;
   isLoading?: boolean;
 };
 
-export default function FeeBreakdown({ networkFeeUsd, bridgeQuote, toPhp, isLoading }: Props) {
+export default function FeeBreakdown({ networkFeeUsd, bridgeQuote, toLocalFiat, isLoading }: Props) {
   const t = useTranslations("send");
   const tc = useTranslations("common");
 
@@ -52,7 +52,7 @@ export default function FeeBreakdown({ networkFeeUsd, bridgeQuote, toPhp, isLoad
             <span className="fee-row__value">
               {bridgeQuote.toAmountUsdt} USDT
               <span style={{ color: "var(--text-secondary)", fontSize: 12, display: "block" }}>
-                ≈ {toPhp(Number(bridgeQuote.toAmountUsdt))}
+                ≈ {toLocalFiat(Number(bridgeQuote.toAmountUsdt))}
               </span>
             </span>
           </div>

@@ -9,7 +9,7 @@ export type BridgeQuote = {
   route: Route;
   fromAmountUsd: string;
   toAmountUsdt: string;
-  toAmountPhp: string;
+  toAmountLocal: string;
   bridgeFeeUsd: string;
   networkFeeUsd: string;
   totalFeeUsd: string;
@@ -23,12 +23,12 @@ export type QuoteParams = {
   fromToken: `0x${string}`;
   fromDecimals: number;
   amountRaw: bigint;
-  phpRate: number;
+  exchangeRate: number;
 };
 
 export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote | null> {
   try {
-    const { fromAddress, toAddress, fromToken, fromDecimals, amountRaw, phpRate } = params;
+    const { fromAddress, toAddress, fromToken, fromDecimals, amountRaw, exchangeRate } = params;
     const result = await getRoutes({
       fromChainId: CELO_CHAIN_ID,
       toChainId: ARBITRUM_CHAIN_ID,
@@ -52,7 +52,7 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
       route,
       fromAmountUsd: fromAmt.toFixed(2),
       toAmountUsdt: toAmt.toFixed(4),
-      toAmountPhp: (toAmt * phpRate).toFixed(2),
+      toAmountLocal: (toAmt * exchangeRate).toFixed(2),
       bridgeFeeUsd: feeCostUsd.toFixed(4),
       networkFeeUsd: Number(gasCostUsd).toFixed(4),
       totalFeeUsd: totalFee.toFixed(4),
