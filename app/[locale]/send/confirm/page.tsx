@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { parseUnits, encodeFunctionData, erc20Abi } from "viem";
 import { useMiniPay } from "@/hooks/useMiniPay";
@@ -8,7 +8,6 @@ import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { COUNTRIES, getCountryConfig } from "@/config/countries";
 import { ChevronLeft } from "lucide-react";
 import FeeBreakdown from "@/components/FeeBreakdown";
-import Link from "next/link";
 
 type StoredSend = {
   amount: string;

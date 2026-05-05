@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { parseUnits, encodeFunctionData, erc20Abi } from "viem";
 import { ChevronLeft } from "lucide-react";
@@ -14,7 +14,6 @@ import FeeBreakdown from "@/components/FeeBreakdown";
 import { MINIPAY_DEPOSIT_DEEPLINK } from "@/lib/constants";
 import { openTransak } from "@/lib/transak";
 import { COUNTRIES, getCountryConfig } from "@/config/countries";
-import Link from "next/link";
 
 export default function SendPage() {
   const t = useTranslations("send");
@@ -149,8 +148,14 @@ export default function SendPage() {
         {/* Step 2 — Route */}
         {step === "route" && (
           <>
-            <p className="section-title">{t("to")} {country.name}</p>
-            <RouteSelector selected={route} onSelect={handleRouteSelect} supported={country.supportedOfframps} localCryptoName={country.localCryptoName} />
+            <RouteSelector 
+              selected={route} 
+              onSelect={handleRouteSelect} 
+              supported={country.supportedOfframps} 
+              localCryptoName={country.localCryptoName} 
+              bankOfframpExample={country.bankOfframpExample}
+              currencyCode={country.currencyCode}
+            />
           </>
         )}
 
@@ -161,6 +166,7 @@ export default function SendPage() {
             <RecipientInput
               route={route ?? "minipay"}
               onResolved={(addr, display) => { setRecipientAddress(addr); setRecipientDisplay(display); }}
+              phonePlaceholder={country.phonePlaceholder}
             />
             <button
               className="btn btn--primary mt-16"

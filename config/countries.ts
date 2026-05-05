@@ -8,6 +8,8 @@ export type CountryConfig = {
   phonePrefix: string;
   supportedOfframps: OfframpProvider[];
   localCryptoName: string;
+  bankOfframpExample: string;
+  phonePlaceholder: string;
 };
 
 export const COUNTRIES: CountryConfig[] = [
@@ -20,6 +22,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+63",
     supportedOfframps: ["minipay", "localcrypto", "transak"],
     localCryptoName: "Coins.ph",
+    bankOfframpExample: "GCash, Maya, or bank",
+    phonePlaceholder: "+63 917 123 4567",
   },
   {
     id: "ID",
@@ -29,6 +33,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+62",
     supportedOfframps: ["minipay", "localcrypto", "transak"],
     localCryptoName: "Tokocrypto / Indodax etc.",
+    bankOfframpExample: "GoPay, OVO, Dana, or bank",
+    phonePlaceholder: "+62 812 3456 789",
   },
   {
     id: "VN",
@@ -38,6 +44,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+84",
     supportedOfframps: ["minipay", "localcrypto", "transak"],
     localCryptoName: "Remitano / Binance etc.",
+    bankOfframpExample: "MoMo, ZaloPay, or bank",
+    phonePlaceholder: "+84 90 123 4567",
   },
   {
     id: "MY",
@@ -47,6 +55,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+60",
     supportedOfframps: ["minipay", "localcrypto", "transak"],
     localCryptoName: "Luno / Binance etc.",
+    bankOfframpExample: "Touch 'n Go, GrabPay, or bank",
+    phonePlaceholder: "+60 12 345 6789",
   },
   {
     id: "TH",
@@ -56,6 +66,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+66",
     supportedOfframps: ["minipay", "localcrypto", "transak"],
     localCryptoName: "Bitkub / Binance etc.",
+    bankOfframpExample: "PromptPay, TrueMoney, or bank",
+    phonePlaceholder: "+66 81 234 5678",
   },
   {
     id: "BR",
@@ -65,6 +77,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+55",
     supportedOfframps: ["minipay", "localcrypto", "transak"],
     localCryptoName: "Mercado Bitcoin / Binance etc.",
+    bankOfframpExample: "Pix or bank",
+    phonePlaceholder: "+55 11 91234 5678",
   },
   {
     id: "IN",
@@ -74,6 +88,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+91",
     supportedOfframps: ["minipay", "localcrypto", "transak"],
     localCryptoName: "WazirX / CoinDCX etc.",
+    bankOfframpExample: "UPI, Paytm, or bank",
+    phonePlaceholder: "+91 98765 43210",
   },
 
   // Africa (Fonbnk supported, Transak omitted)
@@ -85,6 +101,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+234",
     supportedOfframps: ["minipay", "localcrypto", "fonbnk"],
     localCryptoName: "Quidax / Binance etc.",
+    bankOfframpExample: "Bank Transfer",
+    phonePlaceholder: "+234 803 123 4567",
   },
   {
     id: "KE",
@@ -94,6 +112,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+254",
     supportedOfframps: ["minipay", "localcrypto", "fonbnk"],
     localCryptoName: "Yellow Card / Binance etc.",
+    bankOfframpExample: "M-Pesa",
+    phonePlaceholder: "+254 712 345 678",
   },
   {
     id: "GH",
@@ -103,6 +123,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+233",
     supportedOfframps: ["minipay", "localcrypto", "fonbnk"],
     localCryptoName: "Yellow Card / Binance etc.",
+    bankOfframpExample: "Mobile Money",
+    phonePlaceholder: "+233 24 123 4567",
   },
   {
     id: "ZA",
@@ -112,6 +134,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+27",
     supportedOfframps: ["minipay", "localcrypto", "fonbnk"],
     localCryptoName: "Luno / VALR etc.",
+    bankOfframpExample: "Bank Transfer",
+    phonePlaceholder: "+27 82 123 4567",
   },
   {
     id: "UG",
@@ -121,6 +145,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+256",
     supportedOfframps: ["minipay", "localcrypto", "fonbnk"],
     localCryptoName: "Yellow Card / Binance etc.",
+    bankOfframpExample: "Mobile Money",
+    phonePlaceholder: "+256 772 123 456",
   },
   {
     id: "TZ",
@@ -130,6 +156,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+255",
     supportedOfframps: ["minipay", "localcrypto", "fonbnk"],
     localCryptoName: "Yellow Card / Binance etc.",
+    bankOfframpExample: "Mobile Money",
+    phonePlaceholder: "+255 712 345 678",
   },
   {
     id: "RW",
@@ -139,6 +167,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+250",
     supportedOfframps: ["minipay", "localcrypto", "fonbnk"],
     localCryptoName: "Yellow Card / Binance etc.",
+    bankOfframpExample: "Mobile Money",
+    phonePlaceholder: "+250 788 123 456",
   },
   {
     id: "SN",
@@ -148,6 +178,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+221",
     supportedOfframps: ["minipay", "localcrypto", "fonbnk"],
     localCryptoName: "Binance etc.",
+    bankOfframpExample: "Mobile Money",
+    phonePlaceholder: "+221 77 123 45 67",
   },
   {
     id: "CM",
@@ -157,6 +189,8 @@ export const COUNTRIES: CountryConfig[] = [
     phonePrefix: "+237",
     supportedOfframps: ["minipay", "localcrypto", "fonbnk"],
     localCryptoName: "Yellow Card / Binance etc.",
+    bankOfframpExample: "Mobile Money",
+    phonePlaceholder: "+237 670 123 456",
   },
 ];
 

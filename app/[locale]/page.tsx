@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
 import { Home, Send, Clock, Settings, Wallet, Smartphone, Gift } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { useMiniPay } from "@/hooks/useMiniPay";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import BalanceCard from "@/components/BalanceCard";

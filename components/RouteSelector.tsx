@@ -10,6 +10,8 @@ type Props = {
   onSelect: (r: SendRoute) => void;
   supported: OfframpProvider[];
   localCryptoName?: string;
+  bankOfframpExample?: string;
+  currencyCode?: string;
 };
 
 type RouteItem = {
@@ -28,7 +30,7 @@ const ROUTES: RouteItem[] = [
   { id: "transak", Icon: Landmark, color: "#2196F3", titleKey: "routeTransak", descKey: "routeTransakDesc" },
 ];
 
-export default function RouteSelector({ selected, onSelect, supported, localCryptoName }: Props) {
+export default function RouteSelector({ selected, onSelect, supported, localCryptoName, bankOfframpExample, currencyCode }: Props) {
   const t = useTranslations("send");
   
   const visibleRoutes = ROUTES.filter(r => supported.includes(r.id));
@@ -37,6 +39,8 @@ export default function RouteSelector({ selected, onSelect, supported, localCryp
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {visibleRoutes.map(r => {
         const Icon = r.Icon;
+        const isDynamicRoute = r.id === "transak" || r.id === "fonbnk";
+        
         return (
           <button
             key={r.id}
@@ -54,7 +58,11 @@ export default function RouteSelector({ selected, onSelect, supported, localCryp
                   <span className="chip chip--pending" style={{ marginLeft: 8, fontSize: 10 }}>{r.badge}</span>
                 )}
               </div>
-              <div className="route-card__desc">{t(r.descKey as any)}</div>
+              <div className="route-card__desc">
+                {isDynamicRoute && bankOfframpExample && currencyCode
+                  ? t(r.descKey as any, { currency: currencyCode, examples: bankOfframpExample })
+                  : t(r.descKey as any)}
+              </div>
             </div>
             <div className="route-card__arrow">›</div>
           </button>

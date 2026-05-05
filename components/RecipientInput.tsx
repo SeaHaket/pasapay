@@ -7,11 +7,12 @@ import { OfframpProvider } from "@/config/countries";
 type Props = {
   route: OfframpProvider;
   onResolved: (address: `0x${string}` | null, display: string) => void;
+  phonePlaceholder?: string;
 };
 
 type InputMode = "phone" | "wallet";
 
-export default function RecipientInput({ route, onResolved }: Props) {
+export default function RecipientInput({ route, onResolved, phonePlaceholder }: Props) {
   const t = useTranslations("send");
   const [mode, setMode] = useState<InputMode>("phone");
   const [value, setValue] = useState("");
@@ -158,7 +159,7 @@ export default function RecipientInput({ route, onResolved }: Props) {
           <input
             id="recipient-phone"
             className={`input-field${error ? " input-field--error" : ""}`}
-            placeholder={t("recipientPhonePlaceholder")}
+            placeholder={phonePlaceholder ? t("recipientPhonePlaceholder", { placeholder: phonePlaceholder }) : t("recipientPhonePlaceholder")}
             value={value}
             onChange={e => { setValue(e.target.value); setError(null); setResolvedAddress(null); }}
             type="tel"
