@@ -39,7 +39,7 @@ export default function SendPage() {
   useEffect(() => {
     if (step === "review" && route === "localcrypto" && address && recipientAddress && preferred && amountNum > 0 && rate) {
       const raw = parseUnits(amount, preferred.decimals);
-      fetchQuote({ fromAddress: address, toAddress: recipientAddress, token: preferred, amountRaw: raw, phpRate: rate });
+      fetchQuote({ fromAddress: address, toAddress: recipientAddress, token: preferred, amountRaw: raw, exchangeRate: rate ?? 0 });
     }
   }, [step, route]);
 

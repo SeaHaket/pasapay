@@ -53,7 +53,7 @@ export default function HomePage() {
           balances={balances}
           preferred={preferred}
           totalUsd={totalUsd}
-          toLocalFiat={toLocalFiat}
+          toLocalFiat={(usd) => toLocalFiat(usd, country.currencySymbol)}
           isLoading={isLoading}
         />
 

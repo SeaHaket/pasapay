@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import "@/styles/globals.css";
@@ -6,9 +6,14 @@ import "@/styles/globals.css";
 export const metadata: Metadata = {
   title: "PasaPay — Send Money Home",
   description: "Fast, low-cost remittance powered by Celo MiniPay. Send stablecoins to the Philippines in seconds.",
+  icons: { icon: "/logo.webp" },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -23,11 +28,6 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/logo.webp" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-      </head>
       <body suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <div className="app-shell">

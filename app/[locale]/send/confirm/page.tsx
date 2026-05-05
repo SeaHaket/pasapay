@@ -98,7 +98,7 @@ export default function ConfirmPage() {
 
         <FeeBreakdown
           bridgeQuote={params.route === "localcrypto" ? params.quote : undefined}
-          toPhp={(usd) => toLocalFiat(usd, country.currencySymbol)}
+          toLocalFiat={(usd: number) => toLocalFiat(usd, country.currencySymbol)}
         />
 
         {error && (
