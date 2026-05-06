@@ -12,7 +12,6 @@ import RouteSelector, { type SendRoute } from "@/components/RouteSelector";
 import RecipientInput from "@/components/RecipientInput";
 import FeeBreakdown from "@/components/FeeBreakdown";
 import { MINIPAY_DEPOSIT_DEEPLINK } from "@/lib/constants";
-import { openTransak } from "@/lib/transak";
 import { COUNTRIES, getCountryConfig } from "@/config/countries";
 
 export default function SendPage() {
@@ -46,17 +45,6 @@ export default function SendPage() {
   async function handleConfirm() {
     if (!address || !preferred || !recipientAddress) return;
 
-    if (route === "transak") {
-      openTransak({ 
-        walletAddress: address, 
-        defaultCryptoAmount: amountNum, 
-        cryptoCurrencyCode: preferred.symbol,
-        fiatCurrency: country.currencyCode,
-        countryCode: country.id
-      });
-      return;
-    }
-    
     if (route === "fonbnk") {
       const { openFonbnk } = await import("@/lib/fonbnk");
       openFonbnk(address);
@@ -76,13 +64,13 @@ export default function SendPage() {
 
   function handleRouteSelect(r: SendRoute) {
     setRoute(r);
-    if (r === "transak" || r === "fonbnk") { setStep("review"); return; }
+    if (r === "fonbnk") { setStep("review"); return; }
     setStep("recipient");
   }
 
   function handleBack() {
     if (step === "review") {
-      if (route === "transak" || route === "fonbnk") setStep("route");
+      if (route === "fonbnk") setStep("route");
       else setStep("recipient");
     } else if (step === "recipient") {
       setStep("route");
@@ -108,7 +96,7 @@ export default function SendPage() {
         {step === "amount" && (
           <>
             <div style={{ marginBottom: 20 }}>
-              <label className="input-label" style={{ marginBottom: 8, fontSize: 13 }}>Recipient Country</label>
+              <label className="input-label" style={{ marginBottom: 8, fontSize: 13 }}>{t("recipientCountry")}</label>
               <select 
                 className="input-field" 
                 value={countryId} 
@@ -164,13 +152,12 @@ export default function SendPage() {
         )}
 
         {/* Step 3 — Recipient */}
-        {step === "recipient" && route !== "transak" && route !== "fonbnk" && (
+        {step === "recipient" && route !== "fonbnk" && (
           <>
             <p className="section-title">{t("to")}</p>
             <RecipientInput
               route={route ?? "minipay"}
               onResolved={(addr, display) => { setRecipientAddress(addr); setRecipientDisplay(display); }}
-              phonePlaceholder={country.phonePlaceholder}
             />
             <button
               className="btn btn--primary mt-16"
@@ -191,7 +178,7 @@ export default function SendPage() {
               <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>{t("fiatEstimate", { amount: toLocalFiat(amountNum, ""), symbol: country.currencySymbol })}</p>
             </div>
 
-            {route !== "transak" && route !== "fonbnk" && recipientDisplay && (
+            {route !== "fonbnk" && recipientDisplay && (
               <div className="card" style={{ marginBottom: 16 }}>
                 <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("to")}</p>
                 <p style={{ fontSize: 16, fontWeight: 600, marginTop: 4 }}>{recipientDisplay}</p>
@@ -205,7 +192,7 @@ export default function SendPage() {
             />
 
             <button className="btn btn--primary mt-16" onClick={handleConfirm}>
-              {route === "transak" || route === "fonbnk" ? "Open Withdraw →" : t("continue") + " →"}
+              {route === "fonbnk" ? t("openWithdraw") + " →" : t("continue") + " →"}
             </button>
           </>
         )}

@@ -1,6 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
-import { Smartphone, CircleDollarSign, Landmark, Coins } from "lucide-react";
+import { Smartphone, CircleDollarSign, Coins } from "lucide-react";
 import { OfframpProvider } from "@/config/countries";
 
 export type SendRoute = OfframpProvider;
@@ -27,7 +27,6 @@ const ROUTES: RouteItem[] = [
   { id: "minipay", Icon: Smartphone, color: "var(--green)", titleKey: "routeMinipay", descKey: "routeMinipayDesc" },
   { id: "fonbnk", Icon: Coins, color: "#9C27B0", titleKey: "routeFonbnk", descKey: "routeFonbnkDesc" },
   { id: "localcrypto", Icon: CircleDollarSign, color: "#FF9800", titleKey: "routeLocalCrypto", descKey: "routeLocalCryptoDesc", badge: "ARB" },
-  { id: "transak", Icon: Landmark, color: "#2196F3", titleKey: "routeTransak", descKey: "routeTransakDesc" },
 ];
 
 export default function RouteSelector({ selected, onSelect, supported, localCryptoName, bankOfframpExample, currencyCode }: Props) {

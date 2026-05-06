@@ -12,6 +12,7 @@ import { COUNTRIES, getCountryConfig } from "@/config/countries";
 export default function HomePage() {
   const t = useTranslations("home");
   const te = useTranslations("errors");
+  const tc = useTranslations("common");
   const { address, isMiniPay, isLoading, balances, preferred, totalUsd } = useMiniPay();
   
   const [countryId, setCountryId] = useState("PH");
@@ -88,7 +89,7 @@ export default function HomePage() {
       <nav className="bottom-nav">
         <Link href="/" className="bottom-nav__item bottom-nav__item--active">
           <span className="bottom-nav__icon"><Home size={22} /></span>
-          <span>Home</span>
+          <span>{tc("home")}</span>
         </Link>
         <Link href="/send" className="bottom-nav__item">
           <span className="bottom-nav__icon"><Send size={22} /></span>
@@ -100,7 +101,7 @@ export default function HomePage() {
         </Link>
         <Link href="/settings" className="bottom-nav__item">
           <span className="bottom-nav__icon"><Settings size={22} /></span>
-          <span>Settings</span>
+          <span>{tc("settings")}</span>
         </Link>
       </nav>
     </>

@@ -9,6 +9,7 @@ type TxData = { hash: string; route: string; chain: "celo" | "arbitrum" };
 
 export default function StatusPage() {
   const t = useTranslations("status");
+  const tc = useTranslations("common");
   const [tx, setTx] = useState<TxData | null>(null);
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function StatusPage() {
   if (!tx) return (
     <div className="not-minipay">
       <p style={{ color: "var(--text-secondary)" }}>No transaction found.</p>
-      <Link href="/" className="btn btn--primary" style={{ width: "auto", padding: "14px 32px", marginTop: 16 }}>Go Home</Link>
+      <Link href="/" className="btn btn--primary" style={{ width: "auto", padding: "14px 32px", marginTop: 16 }}>{tc("goHome")}</Link>
     </div>
   );
 
@@ -35,7 +36,7 @@ export default function StatusPage() {
 
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "16px", background: "var(--bg)", borderTop: "1px solid var(--border)" }}>
         <Link href="/send" className="btn btn--secondary" style={{ marginBottom: 8 }}>{t("sendAnother")}</Link>
-        <Link href="/" className="btn btn--ghost">Home</Link>
+        <Link href="/" className="btn btn--ghost">{tc("home")}</Link>
       </div>
     </>
   );

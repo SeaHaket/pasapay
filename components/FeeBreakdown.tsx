@@ -18,7 +18,7 @@ export default function FeeBreakdown({ networkFeeUsd, bridgeQuote, toLocalFiat, 
       <div className="card" style={{ padding: "14px 16px" }}>
         <div className="flex items-center gap-8" style={{ color: "var(--text-secondary)", fontSize: 14 }}>
           <span className="spinner" style={{ width: 14, height: 14 }} />
-          <span>Getting best route...</span>
+          <span>{t("gettingRoute")}</span>
         </div>
       </div>
     );
@@ -48,7 +48,7 @@ export default function FeeBreakdown({ networkFeeUsd, bridgeQuote, toLocalFiat, 
           </div>
           <div className="divider" />
           <div className="fee-row">
-            <span className="fee-row__label">They receive</span>
+            <span className="fee-row__label">{t("theyReceive")}</span>
             <span className="fee-row__value">
               {bridgeQuote.toAmountUsdt} USDT
               <span style={{ color: "var(--text-secondary)", fontSize: 12, display: "block" }}>

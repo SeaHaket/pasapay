@@ -8,6 +8,7 @@ import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { COUNTRIES, getCountryConfig } from "@/config/countries";
 import { ChevronLeft } from "lucide-react";
 import FeeBreakdown from "@/components/FeeBreakdown";
+import { loadContacts, persistContact } from "@/components/RecipientInput";
 
 type StoredSend = {
   amount: string;
@@ -50,10 +51,15 @@ export default function ConfirmPage() {
         args: [params.recipientAddress as `0x${string}`, amountRaw],
       });
       try {
-        const prevContacts = JSON.parse(localStorage.getItem("pp_contacts") || "[]");
-        if (!prevContacts.some((c: any) => c.address === params.recipientAddress && c.route === params.route)) {
-          prevContacts.unshift({ display: params.recipientDisplay, address: params.recipientAddress, route: params.route });
-          localStorage.setItem("pp_contacts", JSON.stringify(prevContacts.slice(0, 10)));
+        const existing = loadContacts().find(
+          c => c.address === params.recipientAddress && c.route === params.route
+        );
+        if (!existing) {
+          persistContact({
+            display: params.recipientDisplay,
+            address: params.recipientAddress,
+            route: params.route,
+          });
         }
       } catch (e) {}
 

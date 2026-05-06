@@ -46,7 +46,18 @@
     "estimatedTime": "Tinatayang oras",
     "via": "sa pamamagitan ng {bridge}",
     "insufficientBalance": "Hindi sapat ang balanse",
-    "depositCTA": "Mag-deposito para magpatuloy"
+    "depositCTA": "Mag-deposito para magpatuloy",
+    "routeFonbnk": "Fonbnk (Airtime / Bangko)",
+    "routeFonbnkDesc": "I-withdraw ang {currency} sa {examples}",
+    "recipientCountry": "Bansang Tumatanggap",
+    "lookup": "Hanapin",
+    "openWithdraw": "Buksan ang Pag-withdraw",
+    "gettingRoute": "Naghahanap ng pinakamahusay na ruta...",
+    "saveContact": "I-save ang kontak",
+    "editContact": "I-edit ang kontak",
+    "contactSaved": "Na-save bilang",
+    "contactNamePlaceholder": "hal. Nanay, Juan, GCash wallet",
+    "pickContact": "Pumili mula sa Mga Kontak"
   },
   "confirm": {
     "title": "Kumpirmahin ang Paglipat",
@@ -113,6 +124,11 @@
     "usdc": "USDC",
     "usdm": "USDm",
     "networkFee": "Network na bayad",
-    "est": "tinatayang"
+    "est": "tinatayang",
+    "home": "Home",
+    "settings": "Mga Setting",
+    "goHome": "Pumunta sa Home",
+    "recentContacts": "Mga Kamakailang Kontak",
+    "or": "o"
   }
 }

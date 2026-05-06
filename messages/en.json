@@ -48,7 +48,16 @@
     "estimatedTime": "Estimated time",
     "via": "via {bridge}",
     "insufficientBalance": "Insufficient balance",
-    "depositCTA": "Deposit to continue"
+    "depositCTA": "Deposit to continue",
+    "recipientCountry": "Recipient Country",
+    "lookup": "Look up",
+    "openWithdraw": "Open Withdraw",
+    "gettingRoute": "Getting best route...",
+    "saveContact": "Save contact",
+    "editContact": "Edit contact",
+    "contactSaved": "Saved as",
+    "contactNamePlaceholder": "e.g. Mom, John, GCash wallet",
+    "pickContact": "Pick from Contacts"
   },
   "confirm": {
     "title": "Confirm Transfer",
@@ -115,6 +124,11 @@
     "usdc": "USDC",
     "usdm": "USDm",
     "networkFee": "Network fee",
-    "est": "est."
+    "est": "est.",
+    "home": "Home",
+    "settings": "Settings",
+    "goHome": "Go Home",
+    "recentContacts": "Recent Contacts",
+    "or": "or"
   }
 }
