@@ -20,8 +20,15 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: [
-          { key: "X-Frame-Options", value: "ALLOWALL" }, // Allow MiniPay WebView
+          { key: "X-Frame-Options", value: "ALLOWALL" },
           { key: "Access-Control-Allow-Origin", value: "*" },
+        ],
+      },
+      {
+        // Long-lived cache for immutable Next.js static chunks
+        source: "/_next/static/(.*)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
         ],
       },
     ];
