@@ -62,16 +62,18 @@ export default function ConfirmPage() {
       let chain: "celo" | "arbitrum" = "celo";
 
       if (params.route === "localcrypto" && params.quote?.route) {
-        // Execute LI.fi bridge (Celo → Arbitrum)
-        setBridgeStep("Approving token...");
-        const result = await executeBridge(params.quote.route, (s) => {
-          const lower = s.toLowerCase();
-          if (lower.includes("approv")) setBridgeStep("Approving token...");
-          else setBridgeStep("Bridging to Arbitrum...");
-        });
-        if (!result.success || !result.txHash) throw new Error("Bridge execution failed — no transaction hash returned");
+        // Execute LI.fi bridge (Celo → Arbitrum) using MiniPay-compatible CIP-64 txs
+        setBridgeStep("Preparing...");
+        const result = await executeBridge(
+          params.quote.route,
+          address,
+          params.feeCurrency as `0x${string}`,
+          (s) => setBridgeStep(s),
+        );
+        if (!result.success || !result.txHash) {
+          throw new Error(result.error || "Bridge failed — please try again");
+        }
         hash = result.txHash;
-        // source chain is Celo; Celoscan link is correct for the initiating tx
         chain = "celo";
       } else {
         // Direct ERC-20 transfer on Celo (minipay route)

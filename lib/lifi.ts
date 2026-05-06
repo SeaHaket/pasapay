@@ -9,17 +9,7 @@ let _sdk: typeof import("@lifi/sdk") | null = null;
 async function getSdk() {
   if (!_sdk) {
     _sdk = await import("@lifi/sdk");
-    const { createWalletClient, custom } = await import("viem");
-    const { celo } = await import("viem/chains");
-    _sdk.createConfig({
-      integrator: "PasaPay",
-      providers: [
-        _sdk.EVM({
-          getWalletClient: async () =>
-            createWalletClient({ chain: celo, transport: custom((window as any).ethereum) }),
-        }),
-      ],
-    });
+    _sdk.createConfig({ integrator: "PasaPay" });
   }
   return _sdk;
 }
@@ -89,24 +79,71 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
   }
 }
 
+// Bypass executeRoute — it submits standard EVM txs and doesn't support Celo's
+// CIP-64 feeCurrency. Instead: fetch a fresh step transaction, handle approval
+// manually, then submit both txs through MiniPay's feeCurrency-aware path.
 export async function executeBridge(
   route: Route,
+  address: `0x${string}`,
+  feeCurrency: `0x${string}`,
   onStatus?: (status: string) => void,
-): Promise<{ txHash: string | null; success: boolean }> {
+): Promise<{ txHash: string; success: boolean; error?: string }> {
   try {
-    const { executeRoute } = await getSdk();
-    const result = await executeRoute(route, {
-      updateRouteHook: (updatedRoute) => {
-        const status = updatedRoute.steps[0]?.execution?.status;
-        if (status && onStatus) onStatus(status);
-      },
+    const sdk = await getSdk();
+    const { createWalletClient, createPublicClient, custom, http, encodeFunctionData, erc20Abi, maxUint256 } = await import("viem");
+    const { celo } = await import("viem/chains");
+    const { CELO_RPC } = await import("./constants");
+
+    const step = route.steps[0];
+    if (!step) throw new Error("No bridge step found in route");
+
+    // Fetch a fresh transaction request — the stored one may have expired
+    if (onStatus) onStatus("Preparing...");
+    const freshStep = await sdk.getStepTransaction(step);
+    if (!freshStep.transactionRequest?.to || !freshStep.transactionRequest?.data) {
+      throw new Error("LI.fi returned no transaction request for this step");
+    }
+
+    const walletClient = createWalletClient({ chain: celo, transport: custom((window as any).ethereum) });
+    const publicClient = createPublicClient({ chain: celo, transport: http(CELO_RPC) });
+
+    // Handle ERC-20 approval if the bridge contract needs an allowance
+    const spender = freshStep.estimate?.approvalAddress as `0x${string}` | undefined;
+    if (spender) {
+      const allowance = await sdk.getTokenAllowance(freshStep.action.fromToken, address, spender);
+      const needed = BigInt(freshStep.action.fromAmount);
+      if (allowance !== undefined && allowance < needed) {
+        if (onStatus) onStatus("Approving token...");
+        const approveData = encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [spender, maxUint256],
+        });
+        const approvalHash = await walletClient.sendTransaction({
+          account: address,
+          to: freshStep.action.fromToken.address as `0x${string}`,
+          data: approveData,
+          feeCurrency,
+        });
+        await publicClient.waitForTransactionReceipt({ hash: approvalHash });
+      }
+    }
+
+    // Submit the bridge transaction
+    if (onStatus) onStatus("Bridging to Arbitrum...");
+    const txReq = freshStep.transactionRequest;
+    const bridgeHash = await walletClient.sendTransaction({
+      account: address,
+      to: txReq.to as `0x${string}`,
+      data: txReq.data as `0x${string}`,
+      value: txReq.value ? BigInt(txReq.value as string) : 0n,
+      feeCurrency,
     });
-    // Find the last process that has a txHash (approval is first, bridge tx is last)
-    const allProcesses = result.steps.flatMap(s => s.execution?.process ?? []);
-    const txHash = [...allProcesses].reverse().find(p => p.txHash)?.txHash ?? null;
-    return { txHash, success: true };
+
+    return { txHash: bridgeHash, success: true };
   } catch (err) {
-    console.error("[LI.fi] executeBridge failed:", err);
-    return { txHash: null, success: false };
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[LI.fi] executeBridge failed:", message);
+    return { txHash: "", success: false, error: message };
   }
 }

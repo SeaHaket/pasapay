@@ -13,11 +13,13 @@ import RecipientInput from "@/components/RecipientInput";
 import FeeBreakdown from "@/components/FeeBreakdown";
 import { MINIPAY_DEPOSIT_DEEPLINK } from "@/lib/constants";
 import { COUNTRIES, getCountryConfig } from "@/config/countries";
+import { executeBridge } from "@/lib/lifi";
+import { saveTransaction } from "@/lib/history";
 
 export default function SendPage() {
   const t = useTranslations("send");
   const router = useRouter();
-  const { address, preferred, totalUsd, sendTransaction } = useMiniPay();
+  const { address, preferred, totalUsd, sendTransaction, refreshBalances } = useMiniPay();
   
   const [countryId, setCountryId] = useState("PH");
   const country = getCountryConfig(countryId);
@@ -30,6 +32,9 @@ export default function SendPage() {
   const [recipientAddress, setRecipientAddress] = useState<`0x${string}` | null>(null);
   const [recipientDisplay, setRecipientDisplay] = useState("");
   const [step, setStep] = useState<"amount" | "route" | "recipient" | "review">("amount");
+  const [sending, setSending] = useState(false);
+  const [sendStep, setSendStep] = useState("");
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const amountNum = parseFloat(amount) || 0;
   const hasBalance = amountNum > 0 && amountNum <= (preferred?.human ?? 0);
@@ -43,23 +48,67 @@ export default function SendPage() {
   }, [step, route]);
 
   async function handleConfirm() {
-    if (!address || !preferred || !recipientAddress) return;
-
     if (route === "fonbnk") {
       const { openFonbnk } = await import("@/lib/fonbnk");
-      openFonbnk(address);
+      openFonbnk(address!);
       return;
     }
 
-    // Store params in sessionStorage for confirm page
-    sessionStorage.setItem("pp_send", JSON.stringify({
-      amount, route, recipientAddress, recipientDisplay,
-      tokenSymbol: preferred.symbol, tokenAddress: preferred.address,
-      tokenDecimals: preferred.decimals, feeCurrency: preferred.feeCurrency,
-      quote: quote ?? null,
-      countryId
-    }));
-    router.push("/send/confirm");
+    if (!address || !preferred || !recipientAddress) return;
+    setSending(true);
+    setSendStep("Sending...");
+    setSendError(null);
+
+    try {
+      let hash: string;
+      let chain: "celo" | "arbitrum" = "celo";
+
+      if (route === "localcrypto" && quote?.route) {
+        const result = await executeBridge(
+          quote.route,
+          address,
+          preferred.feeCurrency as `0x${string}`,
+          (s) => setSendStep(s),
+        );
+        if (!result.success || !result.txHash) throw new Error(result.error || "Bridge failed — please try again");
+        hash = result.txHash;
+      } else {
+        const amountRaw = parseUnits(amount, preferred.decimals);
+        const data = encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "transfer",
+          args: [recipientAddress, amountRaw],
+        });
+        hash = await sendTransaction({
+          to: preferred.address as `0x${string}`,
+          data,
+          feeCurrency: preferred.feeCurrency as `0x${string}`,
+        });
+      }
+
+      sessionStorage.setItem("pp_tx", JSON.stringify({ hash, route, chain }));
+      saveTransaction({
+        timestamp: Date.now(),
+        hash,
+        chain,
+        amount,
+        tokenSymbol: preferred.symbol,
+        route: route!,
+        recipientDisplay,
+        recipientAddress,
+        countryId,
+        currencyCode: country.currencyCode,
+        currencySymbol: country.currencySymbol,
+        fiatEstimate: toLocalFiat(amountNum, country.currencySymbol),
+      });
+
+      await refreshBalances();
+      router.push("/send/status");
+    } catch (err: any) {
+      setSendError(err?.message ?? "Transaction failed");
+      setSending(false);
+      setSendStep("");
+    }
   }
 
   function handleRouteSelect(r: SendRoute) {
@@ -69,6 +118,7 @@ export default function SendPage() {
   }
 
   function handleBack() {
+    if (sending) return;
     if (step === "review") {
       if (route === "fonbnk") setStep("route");
       else setStep("recipient");
@@ -191,8 +241,21 @@ export default function SendPage() {
               isLoading={route === "localcrypto" && bridgeStatus === "quoting"}
             />
 
-            <button className="btn btn--primary mt-16" onClick={handleConfirm}>
-              {route === "fonbnk" ? t("openWithdraw") + " →" : t("continue") + " →"}
+            {sendError && (
+              <div className="card" style={{ borderColor: "var(--error)", marginTop: 12 }}>
+                <p style={{ color: "var(--error)", fontSize: 13 }}>❌ {sendError}</p>
+              </div>
+            )}
+
+            <button
+              className="btn btn--primary mt-16"
+              onClick={handleConfirm}
+              disabled={sending || (route === "localcrypto" && bridgeStatus === "quoting")}
+            >
+              {sending
+                ? <><span className="spinner" /> {sendStep}</>
+                : route === "fonbnk" ? t("openWithdraw") + " →" : "Send →"
+              }
             </button>
           </>
         )}
