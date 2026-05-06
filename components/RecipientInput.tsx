@@ -38,6 +38,7 @@ export default function RecipientInput({ route, onResolved }: Props) {
   const [pickedContact, setPickedContact] = useState<{ name: string; address: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [showPhoneNote, setShowPhoneNote] = useState(false);
 
   // Save-contact form state
   const [showSaveForm, setShowSaveForm] = useState(false);
@@ -273,6 +274,43 @@ export default function RecipientInput({ route, onResolved }: Props) {
           — {tc("or")} —
         </p>
       )}
+
+      {/* Phone Number Lookup (ODIS) — Coming Soon */}
+      <div style={{ marginBottom: 12 }}>
+        <button
+          className="btn btn--ghost"
+          onClick={() => setShowPhoneNote(v => !v)}
+          style={{
+            width: "100%",
+            textAlign: "left",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "12px 16px",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            opacity: 0.55,
+          }}
+        >
+          <span>📞</span>
+          <span style={{ flex: 1 }}>{t("recipientPhone")}</span>
+          <span className="chip chip--pending" style={{ fontSize: 10 }}>Coming Soon</span>
+        </button>
+        {showPhoneNote && (
+          <div style={{
+            marginTop: 6,
+            padding: "10px 14px",
+            background: "rgba(120,120,120,0.08)",
+            borderRadius: 8,
+            borderLeft: "3px solid var(--border)",
+            fontSize: 13,
+            color: "var(--text-secondary)",
+            lineHeight: 1.5,
+          }}>
+            🚧 Phone number lookup is coming soon! For now, please enter the recipient&apos;s wallet address below.
+          </div>
+        )}
+      </div>
 
       {/* Manual Celo wallet address */}
       <label className="input-label">{t("recipientWallet")}</label>

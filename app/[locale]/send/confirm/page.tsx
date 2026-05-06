@@ -9,6 +9,7 @@ import { COUNTRIES, getCountryConfig } from "@/config/countries";
 import { ChevronLeft } from "lucide-react";
 import FeeBreakdown from "@/components/FeeBreakdown";
 import { loadContacts, persistContact } from "@/components/RecipientInput";
+import { saveTransaction } from "@/lib/history";
 
 type StoredSend = {
   amount: string;
@@ -69,6 +70,21 @@ export default function ConfirmPage() {
         feeCurrency: params.feeCurrency as `0x${string}`,
       });
       sessionStorage.setItem("pp_tx", JSON.stringify({ hash, route: params.route, chain: "celo" }));
+
+      saveTransaction({
+        timestamp: Date.now(),
+        hash,
+        chain: "celo",
+        amount: params.amount,
+        tokenSymbol: params.tokenSymbol,
+        route: params.route,
+        recipientDisplay: params.recipientDisplay,
+        recipientAddress: params.recipientAddress,
+        countryId: params.countryId || "PH",
+        currencyCode: country.currencyCode,
+        currencySymbol: country.currencySymbol,
+        fiatEstimate: toLocalFiat(parseFloat(params.amount), country.currencySymbol),
+      });
 
       await refreshBalances();
       router.push("/send/status");
