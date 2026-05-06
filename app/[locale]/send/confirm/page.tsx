@@ -10,6 +10,7 @@ import { ChevronLeft } from "lucide-react";
 import FeeBreakdown from "@/components/FeeBreakdown";
 import { loadContacts, persistContact } from "@/components/RecipientInput";
 import { saveTransaction } from "@/lib/history";
+import { executeBridge } from "@/lib/lifi";
 
 type StoredSend = {
   amount: string;
@@ -32,6 +33,7 @@ export default function ConfirmPage() {
   const country = params ? getCountryConfig(params.countryId || "PH") : getCountryConfig("PH");
   const { rate, toLocalFiat } = useExchangeRate(country.currencyCode);
   const [sending, setSending] = useState(false);
+  const [bridgeStep, setBridgeStep] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,38 +45,54 @@ export default function ConfirmPage() {
   async function handleSend() {
     if (!address || !params) return;
     setSending(true);
+    setBridgeStep("");
     setError(null);
     try {
-      const amountRaw = parseUnits(params.amount, params.tokenDecimals);
-      const data = encodeFunctionData({
-        abi: erc20Abi,
-        functionName: "transfer",
-        args: [params.recipientAddress as `0x${string}`, amountRaw],
-      });
+      // Persist contact
       try {
         const existing = loadContacts().find(
           c => c.address === params.recipientAddress && c.route === params.route
         );
         if (!existing) {
-          persistContact({
-            display: params.recipientDisplay,
-            address: params.recipientAddress,
-            route: params.route,
-          });
+          persistContact({ display: params.recipientDisplay, address: params.recipientAddress, route: params.route });
         }
-      } catch (e) {}
+      } catch {}
 
-      const hash = await sendTransaction({
-        to: params.tokenAddress as `0x${string}`,
-        data,
-        feeCurrency: params.feeCurrency as `0x${string}`,
-      });
-      sessionStorage.setItem("pp_tx", JSON.stringify({ hash, route: params.route, chain: "celo" }));
+      let hash: string;
+      let chain: "celo" | "arbitrum" = "celo";
 
+      if (params.route === "localcrypto" && params.quote?.route) {
+        // Execute LI.fi bridge (Celo → Arbitrum)
+        setBridgeStep("Approving token...");
+        const result = await executeBridge(params.quote.route, (s) => {
+          const lower = s.toLowerCase();
+          if (lower.includes("approv")) setBridgeStep("Approving token...");
+          else setBridgeStep("Bridging to Arbitrum...");
+        });
+        if (!result.success || !result.txHash) throw new Error("Bridge execution failed — no transaction hash returned");
+        hash = result.txHash;
+        // source chain is Celo; Celoscan link is correct for the initiating tx
+        chain = "celo";
+      } else {
+        // Direct ERC-20 transfer on Celo (minipay route)
+        const amountRaw = parseUnits(params.amount, params.tokenDecimals);
+        const data = encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "transfer",
+          args: [params.recipientAddress as `0x${string}`, amountRaw],
+        });
+        hash = await sendTransaction({
+          to: params.tokenAddress as `0x${string}`,
+          data,
+          feeCurrency: params.feeCurrency as `0x${string}`,
+        });
+      }
+
+      sessionStorage.setItem("pp_tx", JSON.stringify({ hash, route: params.route, chain }));
       saveTransaction({
         timestamp: Date.now(),
         hash,
-        chain: "celo",
+        chain,
         amount: params.amount,
         tokenSymbol: params.tokenSymbol,
         route: params.route,
@@ -91,6 +109,7 @@ export default function ConfirmPage() {
     } catch (err: any) {
       setError(err?.message ?? "Transaction failed");
       setSending(false);
+      setBridgeStep("");
     }
   }
 
@@ -131,7 +150,9 @@ export default function ConfirmPage() {
 
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "16px", background: "var(--bg)", borderTop: "1px solid var(--border)" }}>
           <button className="btn btn--primary" onClick={handleSend} disabled={sending}>
-            {sending ? <><span className="spinner" /> Sending...</> : `✅ ${t("swipeToSend")}`}
+            {sending
+              ? <><span className="spinner" /> {bridgeStep || "Sending..."}</>
+              : `✅ ${t("swipeToSend")}`}
           </button>
           <Link href="/send" className="btn btn--ghost mt-8" style={{ marginTop: 8 }}>
             {t("cancel")}

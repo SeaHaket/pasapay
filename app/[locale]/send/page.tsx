@@ -56,7 +56,7 @@ export default function SendPage() {
       amount, route, recipientAddress, recipientDisplay,
       tokenSymbol: preferred.symbol, tokenAddress: preferred.address,
       tokenDecimals: preferred.decimals, feeCurrency: preferred.feeCurrency,
-      quote: quote ? { ...quote, route: undefined } : null,
+      quote: quote ?? null,
       countryId
     }));
     router.push("/send/confirm");

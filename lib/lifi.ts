@@ -9,7 +9,17 @@ let _sdk: typeof import("@lifi/sdk") | null = null;
 async function getSdk() {
   if (!_sdk) {
     _sdk = await import("@lifi/sdk");
-    _sdk.createConfig({ integrator: "PasaPay" });
+    const { createWalletClient, custom } = await import("viem");
+    const { celo } = await import("viem/chains");
+    _sdk.createConfig({
+      integrator: "PasaPay",
+      providers: [
+        _sdk.EVM({
+          getWalletClient: async () =>
+            createWalletClient({ chain: celo, transport: custom((window as any).ethereum) }),
+        }),
+      ],
+    });
   }
   return _sdk;
 }
@@ -91,7 +101,9 @@ export async function executeBridge(
         if (status && onStatus) onStatus(status);
       },
     });
-    const txHash = result.steps[0]?.execution?.process?.[0]?.txHash ?? null;
+    // Find the last process that has a txHash (approval is first, bridge tx is last)
+    const allProcesses = result.steps.flatMap(s => s.execution?.process ?? []);
+    const txHash = [...allProcesses].reverse().find(p => p.txHash)?.txHash ?? null;
     return { txHash, success: true };
   } catch (err) {
     console.error("[LI.fi] executeBridge failed:", err);
