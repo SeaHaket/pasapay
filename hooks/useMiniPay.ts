@@ -72,8 +72,7 @@ export function useMiniPay(): MiniPayState {
       }
     }
     
-    // Slight delay to ensure MiniPay provider is fully injected
-    setTimeout(init, 100);
+    setTimeout(init, 0);
   }, []);
 
   useEffect(() => {

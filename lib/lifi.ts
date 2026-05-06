@@ -1,9 +1,18 @@
-import { createConfig, getRoutes, executeRoute, type Route } from "@lifi/sdk";
 import { CELO_CHAIN_ID, ARBITRUM_CHAIN_ID } from "./constants";
+import type { Route } from "@lifi/sdk";
 
 export const ARB_USDT_ADDRESS = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
 
-createConfig({ integrator: "PasaPay" });
+// Lazy-load: @lifi/sdk is ~71KB and 800ms to parse — only pulled in when a
+// bridge quote is actually requested (localcrypto route, review step).
+let _sdk: typeof import("@lifi/sdk") | null = null;
+async function getSdk() {
+  if (!_sdk) {
+    _sdk = await import("@lifi/sdk");
+    _sdk.createConfig({ integrator: "PasaPay" });
+  }
+  return _sdk;
+}
 
 export type BridgeQuote = {
   route: Route;
@@ -28,6 +37,7 @@ export type QuoteParams = {
 
 export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote | null> {
   try {
+    const { getRoutes } = await getSdk();
     const { fromAddress, toAddress, fromToken, fromDecimals, amountRaw, exchangeRate } = params;
     const result = await getRoutes({
       fromChainId: CELO_CHAIN_ID,
@@ -43,8 +53,10 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
     const fromAmt = Number(route.fromAmount) / 10 ** fromDecimals;
     const toAmt = Number(route.toAmount) / 10 ** 6;
     const gasCostUsd = route.gasCostUSD ?? "0";
-    const feeCostUsd = route.steps.reduce((acc, step) =>
-      acc + (step.estimate.feeCosts?.reduce((a, f) => a + Number(f.amountUSD ?? 0), 0) ?? 0), 0);
+    const feeCostUsd = route.steps.reduce(
+      (acc, step) => acc + (step.estimate.feeCosts?.reduce((a, f) => a + Number(f.amountUSD ?? 0), 0) ?? 0),
+      0,
+    );
     const totalFee = Number(gasCostUsd) + feeCostUsd;
     const durationSec = route.steps.reduce((acc, s) => acc + (s.estimate.executionDuration ?? 0), 0);
     const bridge = route.steps[0]?.toolDetails?.name ?? "Bridge";
@@ -56,7 +68,9 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
       bridgeFeeUsd: feeCostUsd.toFixed(4),
       networkFeeUsd: Number(gasCostUsd).toFixed(4),
       totalFeeUsd: totalFee.toFixed(4),
-      estimatedDuration: durationSec < 120 ? `~${Math.ceil(durationSec / 60)} min` : `~${Math.ceil(durationSec / 60)} mins`,
+      estimatedDuration: durationSec < 120
+        ? `~${Math.ceil(durationSec / 60)} min`
+        : `~${Math.ceil(durationSec / 60)} mins`,
       bridge,
     };
   } catch (err) {
@@ -65,8 +79,12 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
   }
 }
 
-export async function executeBridge(route: Route, onStatus?: (status: string) => void): Promise<{ txHash: string | null; success: boolean }> {
+export async function executeBridge(
+  route: Route,
+  onStatus?: (status: string) => void,
+): Promise<{ txHash: string | null; success: boolean }> {
   try {
+    const { executeRoute } = await getSdk();
     const result = await executeRoute(route, {
       updateRouteHook: (updatedRoute) => {
         const status = updatedRoute.steps[0]?.execution?.status;
