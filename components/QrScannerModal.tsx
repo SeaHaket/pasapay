@@ -23,9 +23,9 @@ type Props = {
 export default function QrScannerModal({ onScan, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<any>(null);
+  const doneRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState("Point camera at a wallet QR code");
-  const [scanned, setScanned] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,10 +40,10 @@ export default function QrScannerModal({ onScan, onClose }: Props) {
         const scanner = new QrScanner(
           videoRef.current,
           (result: { data: string }) => {
-            if (cancelled || scanned) return;
+            if (cancelled || doneRef.current) return;
             const address = parseAddress(result.data);
             if (address) {
-              setScanned(true);
+              doneRef.current = true;
               scanner.stop();
               onScan(address);
             } else {
@@ -131,11 +131,7 @@ export default function QrScannerModal({ onScan, onClose }: Props) {
         background: "rgba(0,0,0,0.7)",
         textAlign: "center",
       }}>
-        {scanned ? (
-          <p style={{ color: "var(--green)", fontSize: 14, fontWeight: 600 }}>✅ Address scanned!</p>
-        ) : (
-          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}>{hint}</p>
-        )}
+        <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}>{hint}</p>
       </div>
     </div>
   );

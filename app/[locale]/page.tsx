@@ -8,6 +8,7 @@ import { useExchangeRate } from "@/hooks/useExchangeRate";
 import BalanceCard from "@/components/BalanceCard";
 import AppHeader from "@/components/AppHeader";
 import { COUNTRIES, getCountryConfig } from "@/config/countries";
+import { loadHistory, type HistoryEntry } from "@/lib/history";
 
 export default function HomePage() {
   const t = useTranslations("home");
@@ -25,6 +26,8 @@ export default function HomePage() {
   const { toLocalFiat } = useExchangeRate(country.currencyCode);
 
   const [previewMode, setPreviewMode] = useState(false);
+  const [recentTxs, setRecentTxs] = useState<HistoryEntry[]>([]);
+  useEffect(() => { setRecentTxs(loadHistory().slice(0, 3)); }, []);
 
   if (!isLoading && !isMiniPay && !previewMode) {
     return (
@@ -80,9 +83,27 @@ export default function HomePage() {
         </div>
 
         <p className="section-title">{t("recentActivity")}</p>
-        <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t("noTransactions")}</p>
-        </div>
+        {recentTxs.length === 0 ? (
+          <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t("noTransactions")}</p>
+          </div>
+        ) : (
+          <>
+            {recentTxs.map(tx => (
+              <div key={tx.id} className="card" style={{ padding: "12px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>${tx.amount} <span style={{ fontWeight: 400, color: "var(--text-secondary)", fontSize: 13 }}>{tx.tokenSymbol}</span></p>
+                  <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>→ {tx.recipientDisplay}</p>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", flexShrink: 0 }}>{new Date(tx.timestamp).toLocaleDateString()}</p>
+              </div>
+            ))}
+            <Link href="/history" style={{ display: "block", textAlign: "center", color: "var(--text-secondary)", fontSize: 13, padding: "8px 0" }}>
+              View all history →
+            </Link>
+          </>
+        )}
       </main>
 
       {/* Bottom Nav */}

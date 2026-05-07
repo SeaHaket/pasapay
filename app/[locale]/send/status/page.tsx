@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import StatusTracker from "@/components/StatusTracker";
 import BlockchainReceipt from "@/components/BlockchainReceipt";
+import { loadHistory } from "@/lib/history";
 
 type TxData = { hash: string; route: string; chain: "celo" | "arbitrum" };
 
@@ -14,7 +15,13 @@ export default function StatusPage() {
 
   useEffect(() => {
     const raw = sessionStorage.getItem("pp_tx");
-    if (raw) setTx(JSON.parse(raw));
+    if (raw) { setTx(JSON.parse(raw)); return; }
+    // Fallback: if the page was refreshed, recover from persistent history
+    const history = loadHistory();
+    if (history.length > 0) {
+      const last = history[0];
+      setTx({ hash: last.hash, route: last.route, chain: last.chain });
+    }
   }, []);
 
   if (!tx) return (
