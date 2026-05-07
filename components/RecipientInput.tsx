@@ -1,8 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { ScanLine } from "lucide-react";
 import { truncateAddress } from "@/lib/celoscan";
 import { OfframpProvider } from "@/config/countries";
+import dynamic from "next/dynamic";
+
+const QrScannerModal = dynamic(() => import("@/components/QrScannerModal"), { ssr: false });
 
 export type Contact = {
   name?: string;
@@ -39,6 +43,7 @@ export default function RecipientInput({ route, onResolved }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [showPhoneNote, setShowPhoneNote] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   // Save-contact form state
   const [showSaveForm, setShowSaveForm] = useState(false);
@@ -167,6 +172,12 @@ export default function RecipientInput({ route, onResolved }: Props) {
     const isValid = WALLET_RE.test(walletValue);
     return (
       <div className="input-group">
+        {showQr && (
+          <QrScannerModal
+            onScan={(address) => { setShowQr(false); handleWalletChange(address); }}
+            onClose={() => setShowQr(false)}
+          />
+        )}
         {routeContacts.length > 0 && (
           <div style={{ marginBottom: 16 }}>
             <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8, fontWeight: 600 }}>
@@ -186,7 +197,16 @@ export default function RecipientInput({ route, onResolved }: Props) {
             </div>
           </div>
         )}
-        <label className="input-label">{t("recipientWallet")}</label>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <label className="input-label" style={{ margin: 0 }}>{t("recipientWallet")}</label>
+          <button
+            className="btn btn--ghost"
+            onClick={() => setShowQr(true)}
+            style={{ width: "auto", padding: "4px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}
+          >
+            <ScanLine size={14} /> Scan QR
+          </button>
+        </div>
         <input
           id="recipient-wallet"
           className={`input-field${error ? " input-field--error" : ""}`}
@@ -312,8 +332,24 @@ export default function RecipientInput({ route, onResolved }: Props) {
         )}
       </div>
 
+      {showQr && (
+        <QrScannerModal
+          onScan={(address) => { setShowQr(false); handleWalletChange(address); }}
+          onClose={() => setShowQr(false)}
+        />
+      )}
+
       {/* Manual Celo wallet address */}
-      <label className="input-label">{t("recipientWallet")}</label>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <label className="input-label" style={{ margin: 0 }}>{t("recipientWallet")}</label>
+        <button
+          className="btn btn--ghost"
+          onClick={() => setShowQr(true)}
+          style={{ width: "auto", padding: "4px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}
+        >
+          <ScanLine size={14} /> Scan QR
+        </button>
+      </div>
       <input
         id="recipient-wallet-celo"
         className={`input-field${error ? " input-field--error" : ""}`}
