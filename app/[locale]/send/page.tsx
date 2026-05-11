@@ -11,7 +11,7 @@ import Numpad from "@/components/Numpad";
 import RouteSelector, { type SendRoute } from "@/components/RouteSelector";
 import RecipientInput from "@/components/RecipientInput";
 import FeeBreakdown from "@/components/FeeBreakdown";
-import { MINIPAY_DEPOSIT_DEEPLINK } from "@/lib/constants";
+import { MINIPAY_DEPOSIT_DEEPLINK, PASAPAY_FEE_ADDRESS, FONBNK_APP_FEE } from "@/lib/constants";
 import { COUNTRIES, getCountryConfig } from "@/config/countries";
 import { executeBridge } from "@/lib/lifi";
 import { saveTransaction } from "@/lib/history";
@@ -32,9 +32,25 @@ export default function SendPage() {
   const [recipientAddress, setRecipientAddress] = useState<`0x${string}` | null>(null);
   const [recipientDisplay, setRecipientDisplay] = useState("");
   const [step, setStep] = useState<"amount" | "route" | "recipient" | "review">("amount");
+  const [isQuickSend, setIsQuickSend] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendStep, setSendStep] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+
+  // Pre-fill from Quick Send tap
+  useEffect(() => {
+    const raw = sessionStorage.getItem("pp_quicksend");
+    if (!raw) return;
+    sessionStorage.removeItem("pp_quicksend");
+    try {
+      const qs = JSON.parse(raw);
+      if (qs.recipientAddress) setRecipientAddress(qs.recipientAddress as `0x${string}`);
+      if (qs.recipientDisplay) setRecipientDisplay(qs.recipientDisplay);
+      if (qs.countryId) setCountryId(qs.countryId);
+      if (qs.route) setRoute(qs.route as SendRoute);
+      setIsQuickSend(true);
+    } catch {}
+  }, []);
 
   const amountNum = parseFloat(amount) || 0;
   const hasBalance = amountNum > 0 && amountNum <= (preferred?.human ?? 0);
@@ -49,8 +65,51 @@ export default function SendPage() {
 
   async function handleConfirm() {
     if (route === "fonbnk") {
+      if (!address || !preferred) return;
+      setSending(true);
+      setSendError(null);
+
+      // Collect $0.10 app fee if treasury address is configured
+      if (PASAPAY_FEE_ADDRESS) {
+        try {
+          setSendStep("Collecting app fee...");
+          const feeRaw = parseUnits(FONBNK_APP_FEE, preferred.decimals);
+          const feeData = encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "transfer",
+            args: [PASAPAY_FEE_ADDRESS, feeRaw],
+          });
+          await sendTransaction({
+            to: preferred.address as `0x${string}`,
+            data: feeData,
+            feeCurrency: preferred.feeCurrency as `0x${string}`,
+          });
+        } catch (err: any) {
+          setSendError(err?.message ?? "Fee payment failed — please try again");
+          setSending(false);
+          setSendStep("");
+          return;
+        }
+      }
+
+      saveTransaction({
+        timestamp: Date.now(),
+        hash: "fonbnk",
+        chain: "celo",
+        amount: "0",
+        tokenSymbol: preferred.symbol,
+        route: "fonbnk",
+        recipientDisplay: `Fonbnk (${country.currencyCode})`,
+        recipientAddress: "",
+        countryId,
+        currencyCode: country.currencyCode,
+        currencySymbol: country.currencySymbol,
+        fiatEstimate: "",
+      });
+
       const { openFonbnk } = await import("@/lib/fonbnk");
-      openFonbnk(address!, country.currencyCode);
+      openFonbnk(address, country.currencyCode);
+      setSending(false);
       return;
     }
 
@@ -120,7 +179,8 @@ export default function SendPage() {
   function handleBack() {
     if (sending) return;
     if (step === "review") {
-      if (route === "fonbnk") setStep("route");
+      if (isQuickSend) setStep("amount");
+      else if (route === "fonbnk") setStep("route");
       else setStep("recipient");
     } else if (step === "recipient") {
       setStep("route");
@@ -175,10 +235,21 @@ export default function SendPage() {
                 <a href={MINIPAY_DEPOSIT_DEEPLINK} className="btn btn--primary">{t("depositCTA")}</a>
               </div>
             )}
+            {isQuickSend && recipientDisplay && (
+              <div className="card" style={{ marginTop: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--green)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                  {recipientDisplay.startsWith("0x") ? recipientDisplay.slice(2, 4).toUpperCase() : recipientDisplay.slice(0, 2).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>Sending to</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{recipientDisplay}</p>
+                </div>
+              </div>
+            )}
             <div style={{ padding: "16px 8px 0" }}>
               <button
                 className="btn btn--primary"
-                onClick={() => setStep("route")}
+                onClick={() => isQuickSend ? setStep("review") : setStep("route")}
                 disabled={!hasBalance}
               >
                 {t("continue")} →
@@ -240,6 +311,18 @@ export default function SendPage() {
               toLocalFiat={(usd) => toLocalFiat(usd, country.currencySymbol)}
               isLoading={route === "localcrypto" && bridgeStatus === "quoting"}
             />
+
+            {route === "fonbnk" && PASAPAY_FEE_ADDRESS && (
+              <div className="card" style={{ marginBottom: 16, padding: "12px 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>App fee</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>$0.10 {preferred?.symbol}</p>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "4px 0 0" }}>
+                  Charged before opening Fonbnk
+                </p>
+              </div>
+            )}
 
             {sendError && (
               <div className="card" style={{ borderColor: "var(--error)", marginTop: 12 }}>

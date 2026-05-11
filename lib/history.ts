@@ -33,3 +33,40 @@ export function saveTransaction(entry: Omit<HistoryEntry, "id">): HistoryEntry {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all.slice(0, MAX_ENTRIES)));
   return full;
 }
+
+export type QuickContact = {
+  recipientAddress: string;
+  recipientDisplay: string;
+  countryId: string;
+  currencyCode: string;
+  currencySymbol: string;
+  route: string;
+  count: number;
+};
+
+export function getQuickContacts(limit = 5): QuickContact[] {
+  const history = loadHistory();
+  const map = new Map<string, QuickContact>();
+  for (const tx of history) {
+    // Fonbnk has no on-chain recipient — group by country instead
+    const key = tx.route === "fonbnk"
+      ? `fonbnk-${tx.countryId}`
+      : tx.recipientAddress || null;
+    if (!key) continue;
+    const existing = map.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      map.set(key, {
+        recipientAddress: tx.recipientAddress,
+        recipientDisplay: tx.recipientDisplay,
+        countryId: tx.countryId,
+        currencyCode: tx.currencyCode,
+        currencySymbol: tx.currencySymbol,
+        route: tx.route,
+        count: 1,
+      });
+    }
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count).slice(0, limit);
+}

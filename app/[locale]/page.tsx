@@ -7,8 +7,9 @@ import { useMiniPay } from "@/hooks/useMiniPay";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import BalanceCard from "@/components/BalanceCard";
 import AppHeader from "@/components/AppHeader";
+import QuickSend from "@/components/QuickSend";
 import { COUNTRIES, getCountryConfig } from "@/config/countries";
-import { loadHistory, type HistoryEntry } from "@/lib/history";
+import { loadHistory, getQuickContacts, type HistoryEntry, type QuickContact } from "@/lib/history";
 
 export default function HomePage() {
   const t = useTranslations("home");
@@ -27,7 +28,11 @@ export default function HomePage() {
 
   const [previewMode, setPreviewMode] = useState(false);
   const [recentTxs, setRecentTxs] = useState<HistoryEntry[]>([]);
-  useEffect(() => { setRecentTxs(loadHistory().slice(0, 3)); }, []);
+  const [quickContacts, setQuickContacts] = useState<QuickContact[]>([]);
+  useEffect(() => {
+    setRecentTxs(loadHistory().slice(0, 3));
+    setQuickContacts(getQuickContacts(5));
+  }, []);
 
   if (!isLoading && !isMiniPay && !previewMode) {
     return (
@@ -71,6 +76,12 @@ export default function HomePage() {
             <span className="action-btn__label">{t("history")}</span>
           </Link>
         </div>
+
+        {quickContacts.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <QuickSend contacts={quickContacts} address={address ?? undefined} />
+          </div>
+        )}
 
         <div className="card card--glass" style={{ margin: "24px 0", display: "flex", alignItems: "center", gap: 16, cursor: "pointer", padding: "16px" }} onClick={() => { window.location.href = "https://claim.minipay.xyz/"; }}>
           <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(252, 209, 22, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ph-gold)", flexShrink: 0 }}>
