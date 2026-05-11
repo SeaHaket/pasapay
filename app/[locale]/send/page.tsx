@@ -11,7 +11,7 @@ import Numpad from "@/components/Numpad";
 import RouteSelector, { type SendRoute } from "@/components/RouteSelector";
 import RecipientInput from "@/components/RecipientInput";
 import FeeBreakdown from "@/components/FeeBreakdown";
-import { MINIPAY_DEPOSIT_DEEPLINK, PASAPAY_FEE_ADDRESS, FONBNK_APP_FEE } from "@/lib/constants";
+import { MINIPAY_DEPOSIT_DEEPLINK, PASAPAY_FEE_ADDRESS, FONBNK_APP_FEE, CELO_RPC } from "@/lib/constants";
 import { COUNTRIES, getCountryConfig } from "@/config/countries";
 import { executeBridge } from "@/lib/lifi";
 import { saveTransaction } from "@/lib/history";
@@ -73,17 +73,24 @@ export default function SendPage() {
       if (PASAPAY_FEE_ADDRESS) {
         try {
           setSendStep("Collecting app fee...");
+          const { createPublicClient, http: httpTransport } = await import("viem");
+          const { celo: celoChain } = await import("viem/chains");
+          const publicClient = createPublicClient({ chain: celoChain, transport: httpTransport(CELO_RPC) });
+
           const feeRaw = parseUnits(FONBNK_APP_FEE, preferred.decimals);
           const feeData = encodeFunctionData({
             abi: erc20Abi,
             functionName: "transfer",
             args: [PASAPAY_FEE_ADDRESS, feeRaw],
           });
-          await sendTransaction({
+          const feeHash = await sendTransaction({
             to: preferred.address as `0x${string}`,
             data: feeData,
             feeCurrency: preferred.feeCurrency as `0x${string}`,
           });
+          // Wait for on-chain confirmation before redirecting so the fee
+          // is definitely settled and not lost in a page navigation race.
+          await publicClient.waitForTransactionReceipt({ hash: feeHash });
         } catch (err: any) {
           setSendError(err?.message ?? "Fee payment failed — please try again");
           setSending(false);
@@ -96,7 +103,7 @@ export default function SendPage() {
         timestamp: Date.now(),
         hash: "fonbnk",
         chain: "celo",
-        amount: "0",
+        amount,
         tokenSymbol: preferred.symbol,
         route: "fonbnk",
         recipientDisplay: `Fonbnk (${country.currencyCode})`,
@@ -104,7 +111,7 @@ export default function SendPage() {
         countryId,
         currencyCode: country.currencyCode,
         currencySymbol: country.currencySymbol,
-        fiatEstimate: "",
+        fiatEstimate: toLocalFiat(amountNum, country.currencySymbol),
       });
 
       const { openFonbnk } = await import("@/lib/fonbnk");
