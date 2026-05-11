@@ -9,7 +9,12 @@ let _sdk: typeof import("@lifi/sdk") | null = null;
 async function getSdk() {
   if (!_sdk) {
     _sdk = await import("@lifi/sdk");
-    _sdk.createConfig({ integrator: "PasaPay" });
+    // fee: 0.0025 = 0.25% integrator fee — requires LI.fi partner approval to activate
+    _sdk.createConfig({
+      integrator: "PasaPay",
+      apiKey: process.env.NEXT_PUBLIC_LIFI_API_KEY,
+      routeOptions: { fee: 0.0025 },
+    });
   }
   return _sdk;
 }

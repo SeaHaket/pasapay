@@ -20,7 +20,7 @@ export const COUNTRIES: CountryConfig[] = [
     currencyCode: "PHP",
     currencySymbol: "₱",
     phonePrefix: "+63",
-    supportedOfframps: ["minipay", "transak", "localcrypto"],
+    supportedOfframps: ["minipay", "fonbnk", "transak", "localcrypto"],
     localCryptoName: "Coins.ph",
     bankOfframpExample: "GCash, Maya, or bank",
     phonePlaceholder: "+63 917 123 4567",

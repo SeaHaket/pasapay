@@ -1,11 +1,6 @@
-export function openFonbnk(walletAddress: string) {
-  // Fonbnk provides a web-based offramp widget. 
-  // We construct the URL and redirect the user.
+export function openFonbnk(walletAddress: string, currencyCode?: string) {
   const baseUrl = "https://pay.fonbnk.com/offramp";
-  const params = new URLSearchParams({
-    walletAddress: walletAddress,
-    network: "celo",
-  });
-  
-  window.location.href = `${baseUrl}?${params.toString()}`;
+  const params: Record<string, string> = { walletAddress, network: "celo" };
+  if (currencyCode) params.currency = currencyCode;
+  window.location.href = `${baseUrl}?${new URLSearchParams(params).toString()}`;
 }

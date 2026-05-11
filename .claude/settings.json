@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm uninstall *)",
+      "Bash(node -e \"const sdk = require\\('/c/Projects/PasaPay/node_modules/@lifi/sdk'\\); console.log\\(typeof sdk.getRoutes\\)\")"
+    ]
+  }
+}

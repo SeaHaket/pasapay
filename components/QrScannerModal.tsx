@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { X, Camera } from "lucide-react";
+import { X, Camera, Upload } from "lucide-react";
 
 // Matches plain 0x EVM addresses and strips common URI prefixes:
 // ethereum:0x...  /  celo:0x...  /  arbitrum:0x...  and ?query params
@@ -23,6 +23,7 @@ type Props = {
 export default function QrScannerModal({ onScan, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState("Point camera at a wallet QR code");
@@ -84,6 +85,29 @@ export default function QrScannerModal({ onScan, onClose }: Props) {
     };
   }, []);
 
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || doneRef.current) return;
+    try {
+      const QrScanner = (await import("qr-scanner")).default;
+      const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
+      const address = parseAddress(result.data);
+      if (address) {
+        doneRef.current = true;
+        scannerRef.current?.stop();
+        onScan(address);
+      } else {
+        setHint("No wallet address found in image");
+        setTimeout(() => setHint("Point camera at a wallet QR code"), 2500);
+      }
+    } catch {
+      setHint("Could not read QR code from image");
+      setTimeout(() => setHint("Point camera at a wallet QR code"), 2500);
+    }
+    // reset so the same file can be re-selected
+    e.target.value = "";
+  }
+
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 1000,
@@ -100,6 +124,21 @@ export default function QrScannerModal({ onScan, onClose }: Props) {
           <p style={{ color: "#fff", fontWeight: 700, fontSize: 16, margin: 0 }}>Scan Wallet QR Code</p>
           <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "2px 0 0" }}>Celo or Arbitrum address</p>
         </div>
+        {/* Hidden file input for image upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={handleFileUpload}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          title="Upload QR code image"
+          style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginRight: 8 }}
+        >
+          <Upload size={18} color="#fff" />
+        </button>
         <button
           onClick={onClose}
           style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}

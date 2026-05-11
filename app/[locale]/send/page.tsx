@@ -50,7 +50,7 @@ export default function SendPage() {
   async function handleConfirm() {
     if (route === "fonbnk") {
       const { openFonbnk } = await import("@/lib/fonbnk");
-      openFonbnk(address!);
+      openFonbnk(address!, country.currencyCode);
       return;
     }
 
