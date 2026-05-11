@@ -51,8 +51,9 @@ export default function SettingsPage() {
           </Link>
         </div>
 
-        <p style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary)", marginTop: 24 }}>
-          PasaPay v{APP_VERSION} · Powered by Celo MiniPay
+        <p style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary)", marginTop: 24, lineHeight: 1.8 }}>
+          PasaPay v{APP_VERSION} · Powered by Celo MiniPay{"\n"}
+          <span style={{ opacity: 0.6 }}>Built by SeaHaket</span>
         </p>
       </main>
 
