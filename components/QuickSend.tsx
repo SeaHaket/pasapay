@@ -1,6 +1,5 @@
 "use client";
 import { useRouter } from "@/i18n/navigation";
-import { openFonbnk } from "@/lib/fonbnk";
 import { type QuickContact } from "@/lib/history";
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -35,14 +34,10 @@ function shortName(display: string, route: string): string {
 
 type Props = { contacts: QuickContact[]; address?: string };
 
-export default function QuickSend({ contacts, address }: Props) {
+export default function QuickSend({ contacts, address: _address }: Props) {
   const router = useRouter();
 
   function handleTap(c: QuickContact) {
-    if (c.route === "fonbnk") {
-      openFonbnk(address ?? "", c.currencyCode);
-      return;
-    }
     sessionStorage.setItem(
       "pp_quicksend",
       JSON.stringify({
