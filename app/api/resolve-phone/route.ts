@@ -6,7 +6,28 @@ import type { AuthSigner } from "@celo/identity/lib/odis/query";
 const MINIPAY_ISSUER = "0x7888612486844Bb9BE598668081c59A9f7367FBc";
 const CELO_RPC = process.env.CELO_RPC ?? "https://forno.celo.org";
 
+// In-memory rate limiter: 5 requests per IP per 60-second window
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 60_000;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: "Too many requests — try again in a minute" }, { status: 429 });
+  }
   try {
     const { phone } = await req.json();
     if (!phone || typeof phone !== "string") {

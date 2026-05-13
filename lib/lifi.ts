@@ -9,10 +9,15 @@ let _sdk: typeof import("@lifi/sdk") | null = null;
 async function getSdk() {
   if (!_sdk) {
     _sdk = await import("@lifi/sdk");
+    // Route all LI.fi requests through our server-side proxy so the API key
+    // is never exposed to the client (server env var LIFI_API_KEY, no NEXT_PUBLIC_).
+    const apiUrl = typeof window !== "undefined"
+      ? `${window.location.origin}/api/lifi`
+      : undefined;
     // fee: 0.0025 = 0.25% integrator fee — requires LI.fi partner approval to activate
     _sdk.createConfig({
       integrator: "PasaPay",
-      apiKey: process.env.NEXT_PUBLIC_LIFI_API_KEY,
+      ...(apiUrl ? { apiUrl } : {}),
       routeOptions: { fee: 0.0025 },
     });
   }

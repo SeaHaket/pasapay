@@ -44,10 +44,16 @@ export default function SendPage() {
     sessionStorage.removeItem("pp_quicksend");
     try {
       const qs = JSON.parse(raw);
+      const VALID_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+      const VALID_ROUTES: SendRoute[] = ["minipay", "localcrypto", "transak", "fonbnk"];
+      const VALID_COUNTRIES = /^[A-Z]{2}$/;
+      // Reject the payload if the address is present but malformed
+      if (qs.recipientAddress && !VALID_ADDRESS.test(qs.recipientAddress)) return;
       if (qs.recipientAddress) setRecipientAddress(qs.recipientAddress as `0x${string}`);
-      if (qs.recipientDisplay) setRecipientDisplay(qs.recipientDisplay);
-      if (qs.countryId) setCountryId(qs.countryId);
-      if (qs.route) setRoute(qs.route as SendRoute);
+      if (qs.recipientDisplay && typeof qs.recipientDisplay === "string")
+        setRecipientDisplay(qs.recipientDisplay.slice(0, 100));
+      if (qs.countryId && VALID_COUNTRIES.test(qs.countryId)) setCountryId(qs.countryId);
+      if (qs.route && VALID_ROUTES.includes(qs.route)) setRoute(qs.route as SendRoute);
       setIsQuickSend(true);
     } catch {}
   }, []);
@@ -90,7 +96,7 @@ export default function SendPage() {
           });
           // Wait for on-chain confirmation before redirecting so the fee
           // is definitely settled and not lost in a page navigation race.
-          await publicClient.waitForTransactionReceipt({ hash: feeHash });
+          await publicClient.waitForTransactionReceipt({ hash: feeHash as `0x${string}` });
         } catch (err: any) {
           setSendError(err?.message ?? "Fee payment failed — please try again");
           setSending(false);
