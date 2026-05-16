@@ -15,7 +15,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "PasaPay — Send Money Home",
   description: "Fast, low-cost remittance powered by Celo MiniPay. Send stablecoins to the Philippines in seconds.",
-  icons: { icon: "/logo.webp" },
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/logo.svg",
+  },
   other: {
     "mobile-web-app-capable": "yes",
     "apple-mobile-web-app-capable": "yes",

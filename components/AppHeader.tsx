@@ -7,7 +7,7 @@ export default function AppHeader() {
   return (
     <header className="app-header">
       <div className="app-header__logo">
-        <Image src="/logo.webp" alt="PasaPay" width={28} height={28} />
+        <Image src="/logo.svg" alt="PasaPay" width={28} height={28} />
         <span>PasaPay</span>
       </div>
       <div className="app-header__actions">
