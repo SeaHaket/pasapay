@@ -1,15 +1,13 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
-import { Home, Send, Clock, Settings, MessageCircle, FileText, Shield } from "lucide-react";
+import { Link } from "@/i18n/navigation";
+import { Home, Send, Clock, PiggyBank, MessageCircle, FileText, Shield } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 
 const APP_VERSION = "0.1.0";
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
-  const router = useRouter();
 
   // Language selector removed as per request
 
@@ -60,8 +58,8 @@ export default function SettingsPage() {
       <nav className="bottom-nav">
         <Link href="/" className="bottom-nav__item"><span className="bottom-nav__icon"><Home size={22} /></span><span>Home</span></Link>
         <Link href="/send" className="bottom-nav__item"><span className="bottom-nav__icon"><Send size={22} /></span><span>Send</span></Link>
+        <Link href="/vault" className="bottom-nav__item"><span className="bottom-nav__icon"><PiggyBank size={22} /></span><span>Vault</span></Link>
         <Link href="/history" className="bottom-nav__item"><span className="bottom-nav__icon"><Clock size={22} /></span><span>History</span></Link>
-        <Link href="/settings" className="bottom-nav__item bottom-nav__item--active"><span className="bottom-nav__icon"><Settings size={22} /></span><span>{t("title")}</span></Link>
       </nav>
     </>
   );

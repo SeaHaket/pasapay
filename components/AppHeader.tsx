@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { Settings } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
 export default function AppHeader() {
@@ -11,7 +12,9 @@ export default function AppHeader() {
       </div>
       <div className="app-header__actions">
         <Link href="/settings" aria-label="Settings">
-          <button className="btn btn--ghost" style={{ width: 40, padding: 0, fontSize: 22 }}>⚙️</button>
+          <button className="btn btn--ghost" style={{ width: 40, height: 40, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Settings size={22} />
+          </button>
         </Link>
       </div>
     </header>

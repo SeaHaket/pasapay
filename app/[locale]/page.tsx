@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Home, Send, Clock, Settings, Wallet, Smartphone, Gift } from "lucide-react";
+import { Home, Send, Clock, Smartphone, Gift, Users, PiggyBank } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useMiniPay } from "@/hooks/useMiniPay";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
@@ -66,10 +66,14 @@ export default function HomePage() {
           isLoading={isLoading}
         />
 
-        <div className="action-row">
+        <div className="action-row" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
           <Link href="/send" className="action-btn action-btn--primary">
             <div className="action-btn__icon"><Send size={20} /></div>
             <span className="action-btn__label">{t("send")}</span>
+          </Link>
+          <Link href="/allocator" className="action-btn">
+            <div className="action-btn__icon"><Users size={20} /></div>
+            <span className="action-btn__label">Allocator</span>
           </Link>
           <Link href="/history" className="action-btn">
             <div className="action-btn__icon"><Clock size={20} /></div>
@@ -127,13 +131,13 @@ export default function HomePage() {
           <span className="bottom-nav__icon"><Send size={22} /></span>
           <span>{t("send")}</span>
         </Link>
+        <Link href="/vault" className="bottom-nav__item">
+          <span className="bottom-nav__icon"><PiggyBank size={22} /></span>
+          <span>Vault</span>
+        </Link>
         <Link href="/history" className="bottom-nav__item">
           <span className="bottom-nav__icon"><Clock size={22} /></span>
           <span>{t("history")}</span>
-        </Link>
-        <Link href="/settings" className="bottom-nav__item">
-          <span className="bottom-nav__icon"><Settings size={22} /></span>
-          <span>{tc("settings")}</span>
         </Link>
       </nav>
     </>
