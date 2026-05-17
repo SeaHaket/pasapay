@@ -26,12 +26,9 @@ export const CELO_RPC = "https://forno.celo.org";
 export const MINIPAY_DEPOSIT_DEEPLINK = "https://link.minipay.xyz/add_cash";
 
 // ─── PasaPay app fee (Fonbnk) ─────────────────────────────────────────────────
-// Treasury wallet — env var overrides the hard-coded fallback so fees are
-// always collected even if .env.local is misconfigured or missing.
-export const PASAPAY_FEE_ADDRESS = (
-  process.env.NEXT_PUBLIC_PASAPAY_FEE_ADDRESS || "0x3cbf3d4442d1c87498c36484E0228eE1dbc95EC0"
-) as `0x${string}`;
-export const FONBNK_APP_FEE = "0.1"; // USD / per transaction
+// Fee collection disabled — set NEXT_PUBLIC_PASAPAY_FEE_ADDRESS to re-enable.
+export const PASAPAY_FEE_ADDRESS = process.env.NEXT_PUBLIC_PASAPAY_FEE_ADDRESS as `0x${string}` | undefined;
+export const FONBNK_APP_FEE = "0.1"; // USD / per transaction (kept for when fees are re-enabled)
 
 // ─── Stablecoin definitions ───────────────────────────────────────────────────
 export const STABLECOINS = [
