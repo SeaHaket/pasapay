@@ -96,7 +96,7 @@ export default function SendPage() {
           });
           // Wait for on-chain confirmation before redirecting so the fee
           // is definitely settled and not lost in a page navigation race.
-          await publicClient.waitForTransactionReceipt({ hash: feeHash as `0x${string}` });
+          await publicClient.waitForTransactionReceipt({ hash: feeHash as `0x${string}`, timeout: 60_000 });
         } catch (err: any) {
           setSendError(err?.message ?? "Fee payment failed — please try again");
           setSending(false);

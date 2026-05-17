@@ -133,7 +133,7 @@ export default function AllocatorSendPage({ params }: Props) {
           data: feeData,
           feeCurrency: preferred.feeCurrency as `0x${string}`,
         });
-        await publicClient.waitForTransactionReceipt({ hash: feeHash as `0x${string}` });
+        await publicClient.waitForTransactionReceipt({ hash: feeHash as `0x${string}`, timeout: 60_000 });
       } catch (err: any) {
         updateRow(row.recipient.id, { status: "error", error: err?.message ?? "Fee payment failed" });
         return;

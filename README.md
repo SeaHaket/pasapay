@@ -121,7 +121,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NEXT_PUBLIC_PASAPAY_FEE_ADDRESS` | Treasury wallet for Fonbnk app fees | `0x3cbf3d...` (hard-coded fallback) |
+| `NEXT_PUBLIC_PASAPAY_FEE_ADDRESS` | Treasury wallet to re-enable Fonbnk app fees | disabled (unset) |
+
+> **Fees are currently disabled.** Setting `NEXT_PUBLIC_PASAPAY_FEE_ADDRESS` to a valid `0x` address re-enables the $0.10 per-Fonbnk-transaction fee. Leaving it unset (the current default) charges no fee — both the collection logic and the fee line in the review screen are suppressed automatically.
 
 ---
 

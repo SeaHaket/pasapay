@@ -114,8 +114,10 @@ export async function getSupplyAPY(assetAddress: `0x${string}`): Promise<number>
     functionName: "getReserveData",
     args: [assetAddress],
   });
-  // currentLiquidityRate is in RAY (1e27). Divide by 1e25 to get percentage.
-  return (Number(data.currentLiquidityRate) / 1e27) * 100;
+  // currentLiquidityRate is per-second in RAY (1e27). Compound to get true APY.
+  const SECONDS_PER_YEAR = 31_536_000;
+  const ratePerSecond = Number(data.currentLiquidityRate) / 1e27;
+  return ((1 + ratePerSecond) ** SECONDS_PER_YEAR - 1) * 100;
 }
 
 export async function getAllowance(
