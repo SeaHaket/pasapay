@@ -14,19 +14,12 @@ import {
   encodeSupply,
   encodeWithdraw,
   formatBalance,
-  getFeatherBalance,
-  getFeatherAPY,
-  getFeatherAllowance,
-  encodeFeatherApprove,
-  encodeFeatherDeposit,
-  encodeFeatherWithdraw,
   type VaultTokenSymbol,
 } from "@/lib/vault";
 import { CELO_RPC } from "@/lib/constants";
 
 type Tab = "deposit" | "withdraw";
 type TxStatus = "idle" | "approving" | "depositing" | "withdrawing" | "done" | "error";
-type VaultProvider = "aave" | "feather";
 
 type VaultBalance = { usdt: bigint; usdc: bigint };
 type VaultAPY = { usdt: number; usdc: number };
@@ -40,14 +33,11 @@ export default function VaultPage() {
   const { address, balances, sendTransaction, refreshBalances } = useMiniPay();
 
   const [tab, setTab] = useState<Tab>("deposit");
-  const [provider, setProvider] = useState<VaultProvider>("aave");
   const [selectedToken, setSelectedToken] = useState<VaultTokenSymbol>("USDT");
   const [amount, setAmount] = useState("");
 
   const [vaultBalances, setVaultBalances] = useState<VaultBalance>({ usdt: 0n, usdc: 0n });
   const [apys, setApys] = useState<VaultAPY>({ usdt: 0, usdc: 0 });
-  const [featherBal, setFeatherBal] = useState<bigint>(0n);
-  const [featherApy, setFeatherApy] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   const [txStatus, setTxStatus] = useState<TxStatus>("idle");
@@ -58,20 +48,16 @@ export default function VaultPage() {
     if (!address) return;
     setIsLoadingData(true);
     try {
-      const [usdtBal, usdcBal, usdtApy, usdcApy, fBal, fApy] = await Promise.all([
+      const [usdtBal, usdcBal, usdtApy, usdcApy] = await Promise.all([
         getATokenBalance(VAULT_TOKENS[0].aTokenAddress, address),
         getATokenBalance(VAULT_TOKENS[1].aTokenAddress, address),
         getSupplyAPY(VAULT_TOKENS[0].address),
         getSupplyAPY(VAULT_TOKENS[1].address),
-        getFeatherBalance(address),
-        getFeatherAPY(),
       ]);
       setVaultBalances({ usdt: usdtBal, usdc: usdcBal });
       setApys({ usdt: usdtApy, usdc: usdcApy });
-      setFeatherBal(fBal);
-      setFeatherApy(fApy);
     } catch {
-      // non-blocking
+      // non-blocking — balances may just show zero
     } finally {
       setIsLoadingData(false);
     }
@@ -81,26 +67,14 @@ export default function VaultPage() {
     loadVaultData();
   }, [loadVaultData]);
 
-  // Feather only supports USDT
-  useEffect(() => {
-    if (provider === "feather") setSelectedToken("USDT");
-  }, [provider]);
-
   const token = tokenConfig(selectedToken);
   const walletBal = balances.find((b) => b.symbol === selectedToken);
   const walletHuman = walletBal?.human ?? 0;
-
-  const vaultRaw = provider === "feather"
-    ? featherBal
-    : selectedToken === "USDT" ? vaultBalances.usdt : vaultBalances.usdc;
+  const vaultRaw = selectedToken === "USDT" ? vaultBalances.usdt : vaultBalances.usdc;
   const vaultHuman = Number(vaultRaw) / 1e6;
+  const currentApy = selectedToken === "USDT" ? apys.usdt : apys.usdc;
 
-  const currentApy = provider === "feather"
-    ? featherApy
-    : selectedToken === "USDT" ? apys.usdt : apys.usdc;
-
-  const totalAaveUsd = Number(vaultBalances.usdt) / 1e6 + Number(vaultBalances.usdc) / 1e6;
-  const totalFeatherUsd = Number(featherBal) / 1e6;
+  const totalVaultUsd = Number(vaultBalances.usdt) / 1e6 + Number(vaultBalances.usdc) / 1e6;
 
   const amountNum = parseFloat(amount) || 0;
   const canDeposit = tab === "deposit" && amountNum > 0 && amountNum <= walletHuman && txStatus === "idle";
@@ -120,36 +94,21 @@ export default function VaultPage() {
       return;
     }
 
-    const publicClient = createPublicClient({ chain: celo, transport: http(CELO_RPC) });
-
     try {
-      if (provider === "feather") {
-        const allowance = await getFeatherAllowance(address);
-        if (allowance < amountRaw) {
-          setTxStatus("approving");
-          setTxMsg("Approving token spend…");
-          const { to, data } = encodeFeatherApprove(amountRaw);
-          const approveHash = await sendTransaction({ to, data, feeCurrency: token.feeCurrency });
-          await publicClient.waitForTransactionReceipt({ hash: approveHash as `0x${string}`, timeout: 60_000 });
-        }
-        setTxStatus("depositing");
-        setTxMsg("Depositing into Feather vault…");
-        const { to, data } = encodeFeatherDeposit(amountRaw, address);
-        await sendTransaction({ to, data, feeCurrency: token.feeCurrency });
-      } else {
-        const allowance = await getAllowance(token.address, address);
-        if (allowance < amountRaw) {
-          setTxStatus("approving");
-          setTxMsg("Approving token spend…");
-          const { to, data } = encodeApprove(token.address, amountRaw);
-          const approveHash = await sendTransaction({ to, data, feeCurrency: token.feeCurrency });
-          await publicClient.waitForTransactionReceipt({ hash: approveHash as `0x${string}`, timeout: 60_000 });
-        }
-        setTxStatus("depositing");
-        setTxMsg("Depositing into Aave v3…");
-        const { to, data } = encodeSupply(token.address, amountRaw, address);
-        await sendTransaction({ to, data, feeCurrency: token.feeCurrency });
+      const allowance = await getAllowance(token.address, address);
+      if (allowance < amountRaw) {
+        setTxStatus("approving");
+        setTxMsg("Approving token spend…");
+        const { to, data } = encodeApprove(token.address, amountRaw);
+        const approveHash = await sendTransaction({ to, data, feeCurrency: token.feeCurrency });
+        const publicClient = createPublicClient({ chain: celo, transport: http(CELO_RPC) });
+        await publicClient.waitForTransactionReceipt({ hash: approveHash as `0x${string}`, timeout: 60_000 });
       }
+
+      setTxStatus("depositing");
+      setTxMsg("Depositing into vault…");
+      const { to, data } = encodeSupply(token.address, amountRaw, address);
+      await sendTransaction({ to, data, feeCurrency: token.feeCurrency });
 
       await Promise.all([refreshBalances(), loadVaultData()]);
       setAmount("");
@@ -168,21 +127,13 @@ export default function VaultPage() {
     setTxMsg("Withdrawing from vault…");
 
     try {
-      if (provider === "feather") {
-        const isMax = vaultHuman > 0 && Math.abs((vaultHuman - amountNum) / vaultHuman) < 0.001;
-        // Use exact maxWithdraw bigint for full withdrawal — avoids assets→shares rounding revert
-        // and respects any Morpho liquidity constraints (unlike redeem(balanceOf))
-        const amountRaw = isMax ? featherBal : parseUnits(amountNum.toFixed(token.decimals), token.decimals);
-        const { to, data } = encodeFeatherWithdraw(amountRaw, address, address);
-        await sendTransaction({ to, data, feeCurrency: token.feeCurrency });
-      } else {
-        const isMax = vaultHuman > 0 && Math.abs((vaultHuman - amountNum) / vaultHuman) < 0.001;
-        const amountRaw = isMax
-          ? BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")
-          : parseUnits(amountNum.toFixed(token.decimals), token.decimals);
-        const { to, data } = encodeWithdraw(token.address, amountRaw, address);
-        await sendTransaction({ to, data, feeCurrency: token.feeCurrency });
-      }
+      const isMax = vaultHuman > 0 && Math.abs((vaultHuman - amountNum) / vaultHuman) < 0.001;
+      // MaxUint256 triggers a full withdrawal in Aave — handles rounding precisely on-chain
+      const amountRaw = isMax
+        ? BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")
+        : parseUnits(amountNum.toFixed(token.decimals), token.decimals);
+      const { to, data } = encodeWithdraw(token.address, amountRaw, address);
+      await sendTransaction({ to, data, feeCurrency: token.feeCurrency });
 
       await Promise.all([refreshBalances(), loadVaultData()]);
       setAmount("");
@@ -217,82 +168,36 @@ export default function VaultPage() {
       </header>
 
       <main className="page" style={{ paddingTop: 8, paddingBottom: 120 }}>
-        {/* Provider selector */}
-        <div style={{ display: "flex", gap: 4, background: "var(--surface)", borderRadius: 12, padding: 4, marginBottom: 16 }}>
-          {([
-            { id: "aave" as VaultProvider, label: "Aave v3", apy: apys.usdt },
-            { id: "feather" as VaultProvider, label: "Feather", apy: featherApy },
-          ]).map((p) => (
-            <button
-              key={p.id}
-              onClick={() => { setProvider(p.id); resetTx(); setAmount(""); }}
-              style={{
-                flex: 1, padding: "10px 8px", borderRadius: 9, border: "none", cursor: "pointer",
-                fontWeight: 700, fontSize: 13,
-                background: provider === p.id ? "var(--green)" : "transparent",
-                color: provider === p.id ? "#000" : "var(--text-secondary)",
-                transition: "all 0.15s",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-              }}
-            >
-              <span>{p.label}</span>
-              <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>
-                {isLoadingData ? "…" : `${p.apy.toFixed(2)}% APY`}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Balance card */}
+        {/* Total balance card */}
         <div className="card card--green" style={{ marginBottom: 20 }}>
           <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 4 }}>Total Saved</p>
           <p style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1 }}>
-            ${isLoadingData ? "—" : (provider === "feather" ? totalFeatherUsd : totalAaveUsd).toFixed(2)}
+            ${isLoadingData ? "—" : totalVaultUsd.toFixed(2)}
           </p>
 
-          {provider === "aave" ? (
-            <div style={{ display: "flex", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
-              {VAULT_TOKENS.map((t) => {
-                const bal = t.symbol === "USDT" ? vaultBalances.usdt : vaultBalances.usdc;
-                const apy = t.symbol === "USDT" ? apys.usdt : apys.usdc;
-                return (
-                  <div key={t.symbol} style={{
-                    background: "rgba(0,0,0,0.25)", borderRadius: 10, padding: "8px 12px",
-                    display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 100,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.color }} />
-                      <span style={{ fontSize: 12, fontWeight: 700 }}>{t.symbol}</span>
-                    </div>
-                    <span style={{ fontSize: 15, fontWeight: 700 }}>
-                      {isLoadingData ? "—" : `$${formatBalance(bal)}`}
-                    </span>
-                    <span style={{ fontSize: 11, color: "var(--green)" }}>
-                      {isLoadingData ? "—" : `${apy.toFixed(2)}% APY`}
-                    </span>
+          <div style={{ display: "flex", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
+            {VAULT_TOKENS.map((t) => {
+              const bal = t.symbol === "USDT" ? vaultBalances.usdt : vaultBalances.usdc;
+              const apy = t.symbol === "USDT" ? apys.usdt : apys.usdc;
+              return (
+                <div key={t.symbol} style={{
+                  background: "rgba(0,0,0,0.25)", borderRadius: 10, padding: "8px 12px",
+                  display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 100,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.color }} />
+                    <span style={{ fontSize: 12, fontWeight: 700 }}>{t.symbol}</span>
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
-              <div style={{
-                background: "rgba(0,0,0,0.25)", borderRadius: 10, padding: "8px 12px",
-                display: "flex", flexDirection: "column", gap: 2, flex: 1,
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#26A17B" }} />
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>USDT</span>
+                  <span style={{ fontSize: 15, fontWeight: 700 }}>
+                    {isLoadingData ? "—" : `$${formatBalance(bal)}`}
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--green)" }}>
+                    {isLoadingData ? "—" : `${apy.toFixed(2)}% APY`}
+                  </span>
                 </div>
-                <span style={{ fontSize: 15, fontWeight: 700 }}>
-                  {isLoadingData ? "—" : `$${formatBalance(featherBal)}`}
-                </span>
-                <span style={{ fontSize: 11, color: "var(--green)" }}>
-                  {isLoadingData ? "—" : `${featherApy.toFixed(2)}% APY`}
-                </span>
-              </div>
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
 
         {/* Tabs */}
@@ -314,31 +219,30 @@ export default function VaultPage() {
           ))}
         </div>
 
-        {/* Token selector — only for Aave (Feather is USDT-only) */}
-        {provider === "aave" && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            {VAULT_TOKENS.map((t) => (
-              <button
-                key={t.symbol}
-                onClick={() => { setSelectedToken(t.symbol); setAmount(""); resetTx(); }}
-                style={{
-                  flex: 1, padding: "10px 12px", borderRadius: 10, border: "2px solid",
-                  borderColor: selectedToken === t.symbol ? t.color : "var(--border)",
-                  background: selectedToken === t.symbol ? `${t.color}18` : "var(--surface)",
-                  color: selectedToken === t.symbol ? t.color : "var(--text-secondary)",
-                  fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "all 0.15s",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                }}
-              >
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.color }} />
-                {t.symbol}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Token selector */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {VAULT_TOKENS.map((t) => (
+            <button
+              key={t.symbol}
+              onClick={() => { setSelectedToken(t.symbol); setAmount(""); resetTx(); }}
+              style={{
+                flex: 1, padding: "10px 12px", borderRadius: 10, border: "2px solid",
+                borderColor: selectedToken === t.symbol ? t.color : "var(--border)",
+                background: selectedToken === t.symbol ? `${t.color}18` : "var(--surface)",
+                color: selectedToken === t.symbol ? t.color : "var(--text-secondary)",
+                fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "all 0.15s",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              }}
+            >
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.color }} />
+              {t.symbol}
+            </button>
+          ))}
+        </div>
 
         {tab === "deposit" && (
           <>
+            {/* Wallet balance */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <label className="input-label" style={{ margin: 0 }}>Amount</label>
               <button
@@ -367,6 +271,7 @@ export default function VaultPage() {
               </span>
             </div>
 
+            {/* APY info */}
             <div style={{
               display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
               background: "rgba(0,200,83,0.08)", borderRadius: 10,
@@ -378,9 +283,7 @@ export default function VaultPage() {
                   {isLoadingData ? "Loading APY…" : `${currentApy.toFixed(2)}% APY`}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "2px 0 0", lineHeight: 1.4 }}>
-                  {provider === "feather"
-                    ? "Powered by Feather (Morpho) on Celo. Yield accrues every block."
-                    : "Powered by Aave v3 on Celo. Yield accrues every block."}
+                  Powered by Aave v3 on Celo. Yield accrues every block.
                 </p>
               </div>
             </div>
@@ -389,6 +292,7 @@ export default function VaultPage() {
 
         {tab === "withdraw" && (
           <>
+            {/* Vault balance */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <label className="input-label" style={{ margin: 0 }}>Amount</label>
               <button
@@ -458,6 +362,7 @@ export default function VaultPage() {
           </div>
         )}
 
+        {/* Multi-step progress */}
         {isBusy && (
           <div style={{
             display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
@@ -497,10 +402,9 @@ export default function VaultPage() {
           </button>
         )}
 
+        {/* Disclaimer */}
         <p style={{ fontSize: 11, color: "var(--text-secondary)", textAlign: "center", marginTop: 20, lineHeight: 1.6, padding: "0 8px" }}>
-          {provider === "feather"
-            ? "Funds are deposited into Feather (Morpho) on Celo. APY is variable and may change. Not financial advice."
-            : "Funds are deposited into Aave v3 on Celo. APY is variable and may change. Not financial advice."}
+          Funds are deposited into Aave v3 on Celo. APY is variable and may change. Not financial advice.
         </p>
       </main>
     </>
