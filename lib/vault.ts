@@ -178,3 +178,153 @@ export function formatBalance(raw: bigint, decimals = 6): string {
   const num = Number(raw) / 10 ** decimals;
   return num.toFixed(2);
 }
+
+// ─── Feather MetaMorpho Vault (Celo Mainnet) ─────────────────────────────────
+// Vault: MetaMorpho v1.1 ERC-4626, underlying asset: USDT (6 decimals)
+// Shares have 18 decimals; underlying USDT has 6 decimals.
+export const FEATHER_USDT_VAULT = "0xb2cDf6403da1ef1Bb911D87D0DD155a699869BC2" as const;
+
+const ERC4626_ABI = [
+  {
+    name: "deposit",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "assets", type: "uint256" }, { name: "receiver", type: "address" }],
+    outputs: [{ name: "shares", type: "uint256" }],
+  },
+  {
+    name: "withdraw",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "assets", type: "uint256" },
+      { name: "receiver", type: "address" },
+      { name: "owner", type: "address" },
+    ],
+    outputs: [{ name: "shares", type: "uint256" }],
+  },
+  {
+    name: "redeem",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "shares", type: "uint256" },
+      { name: "receiver", type: "address" },
+      { name: "owner", type: "address" },
+    ],
+    outputs: [{ name: "assets", type: "uint256" }],
+  },
+  {
+    name: "maxWithdraw",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "balanceOf",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "convertToAssets",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "shares", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
+
+// Returns max USDT the user can withdraw right now (accounts for Morpho liquidity).
+export async function getFeatherBalance(userAddress: `0x${string}`): Promise<bigint> {
+  const client = getClient();
+  return client.readContract({
+    address: FEATHER_USDT_VAULT,
+    abi: ERC4626_ABI,
+    functionName: "maxWithdraw",
+    args: [userAddress],
+  });
+}
+
+// Returns vault shares held by the user (needed for full redeem).
+export async function getFeatherShares(userAddress: `0x${string}`): Promise<bigint> {
+  const client = getClient();
+  return client.readContract({
+    address: FEATHER_USDT_VAULT,
+    abi: ERC4626_ABI,
+    functionName: "balanceOf",
+    args: [userAddress],
+  });
+}
+
+// Derives APY from 7-day rolling share-price change (on-chain, no external API needed).
+export async function getFeatherAPY(): Promise<number> {
+  const client = getClient();
+  try {
+    const currentBlock = await client.getBlockNumber();
+    const pastBlock = currentBlock > 604_800n ? currentBlock - 604_800n : 1n;
+    const ONE_SHARE = 10n ** 18n; // shares are 18-decimal
+    const [cur, past] = await Promise.all([
+      client.readContract({ address: FEATHER_USDT_VAULT, abi: ERC4626_ABI, functionName: "convertToAssets", args: [ONE_SHARE] }),
+      client.readContract({ address: FEATHER_USDT_VAULT, abi: ERC4626_ABI, functionName: "convertToAssets", args: [ONE_SHARE], blockNumber: pastBlock }),
+    ]);
+    if (past === 0n || cur <= past) return 0;
+    const weeklyYield = (Number(cur) - Number(past)) / Number(past);
+    return weeklyYield * 52 * 100;
+  } catch {
+    return 0;
+  }
+}
+
+export async function getFeatherAllowance(owner: `0x${string}`): Promise<bigint> {
+  const client = getClient();
+  return client.readContract({
+    address: USDT_ADDRESS as `0x${string}`,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: [owner, FEATHER_USDT_VAULT],
+  });
+}
+
+export function encodeFeatherApprove(amount: bigint): { to: `0x${string}`; data: `0x${string}` } {
+  return {
+    to: USDT_ADDRESS as `0x${string}`,
+    data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [FEATHER_USDT_VAULT, amount] }),
+  };
+}
+
+export function encodeFeatherDeposit(
+  amount: bigint,
+  receiver: `0x${string}`,
+): { to: `0x${string}`; data: `0x${string}` } {
+  return {
+    to: FEATHER_USDT_VAULT,
+    data: encodeFunctionData({ abi: ERC4626_ABI, functionName: "deposit", args: [amount, receiver] }),
+  };
+}
+
+// Use for partial withdrawals (exact USDT amount out).
+export function encodeFeatherWithdraw(
+  amount: bigint,
+  receiver: `0x${string}`,
+  owner: `0x${string}`,
+): { to: `0x${string}`; data: `0x${string}` } {
+  return {
+    to: FEATHER_USDT_VAULT,
+    data: encodeFunctionData({ abi: ERC4626_ABI, functionName: "withdraw", args: [amount, receiver, owner] }),
+  };
+}
+
+// Use for full withdrawals (exact shares in — avoids rounding that can cause withdraw to revert).
+export function encodeFeatherRedeem(
+  shares: bigint,
+  receiver: `0x${string}`,
+  owner: `0x${string}`,
+): { to: `0x${string}`; data: `0x${string}` } {
+  return {
+    to: FEATHER_USDT_VAULT,
+    data: encodeFunctionData({ abi: ERC4626_ABI, functionName: "redeem", args: [shares, receiver, owner] }),
+  };
+}
