@@ -37,8 +37,8 @@ export default function AllocatorSendPage({ params }: Props) {
     setRows(g.recipients.map((r) => ({ recipient: r, amount: r.defaultAmount, status: "pending" })));
   }, [groupId]);
 
-  const cryptoRows = rows.filter((r) => r.recipient.route === "minipay");
-  const externalRows = rows.filter((r) => r.recipient.route !== "minipay");
+  const cryptoRows = rows.filter((r) => r.recipient.route === "minipay" || r.recipient.route === "vault");
+  const externalRows = rows.filter((r) => r.recipient.route !== "minipay" && r.recipient.route !== "vault");
 
   const allCryptoDone = cryptoRows.every((r) => r.status === "done" || r.status === "error");
   const totalUsd = rows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
@@ -62,6 +62,70 @@ export default function AllocatorSendPage({ params }: Props) {
         updateRow(row.recipient.id, { status: "error", error: "Invalid amount" });
         continue;
       }
+
+      if (row.recipient.route === "vault") {
+        updateRow(row.recipient.id, { status: "sending" });
+        setCurrentStep(`Saving to vault…`);
+        try {
+          const { VAULT_TOKENS, getAllowance, encodeApprove, encodeSupply } = await import("@/lib/vault");
+          // Match preferred token with vault tokens
+          let vaultToken = VAULT_TOKENS.find(t => t.symbol === symbol);
+          if (!vaultToken) {
+            // Fallback to USDT
+            vaultToken = VAULT_TOKENS[0];
+          }
+
+          const amountRaw = parseUnits(amountNum.toFixed(vaultToken.decimals), vaultToken.decimals);
+
+          // 1. Check Allowance
+          setCurrentStep(`Checking vault approval…`);
+          const allowance = await getAllowance(vaultToken.address, address);
+          if (allowance < amountRaw) {
+            setCurrentStep(`Approving ${vaultToken.symbol} for vault…`);
+            const { to: approveTo, data: approveData } = encodeApprove(vaultToken.address, amountRaw);
+            const approveHash = await sendTransaction({
+              to: approveTo,
+              data: approveData,
+              feeCurrency: vaultToken.feeCurrency,
+            });
+            const { createPublicClient, http: httpTransport } = await import("viem");
+            const { celo: celoChain } = await import("viem/chains");
+            const publicClient = createPublicClient({ chain: celoChain, transport: httpTransport(CELO_RPC) });
+            await publicClient.waitForTransactionReceipt({ hash: approveHash as `0x${string}`, timeout: 60_000 });
+          }
+
+          // 2. Supply/Deposit to Vault
+          setCurrentStep(`Depositing ${row.amount} into vault…`);
+          const { to: supplyTo, data: supplyData } = encodeSupply(vaultToken.address, amountRaw, address);
+          const hash = await sendTransaction({
+            to: supplyTo,
+            data: supplyData,
+            feeCurrency: vaultToken.feeCurrency,
+          });
+
+          const country = getCountryConfig(row.recipient.countryId);
+          saveTransaction({
+            timestamp: Date.now(),
+            hash,
+            chain: "celo",
+            amount: row.amount,
+            tokenSymbol: vaultToken.symbol,
+            route: "vault" as any,
+            recipientDisplay: "Personal Savings (Vault)",
+            recipientAddress: address,
+            countryId: row.recipient.countryId,
+            currencyCode: country.currencyCode,
+            currencySymbol: country.currencySymbol,
+            fiatEstimate: "",
+          });
+
+          updateRow(row.recipient.id, { status: "done" });
+        } catch (err: any) {
+          updateRow(row.recipient.id, { status: "error", error: err?.message ?? "Vault deposit failed" });
+        }
+        continue;
+      }
+
       if (!VALID_ADDRESS.test(row.recipient.recipientAddress)) {
         updateRow(row.recipient.id, { status: "error", error: "Invalid wallet address" });
         continue;

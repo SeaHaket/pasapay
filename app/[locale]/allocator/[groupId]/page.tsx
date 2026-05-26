@@ -5,11 +5,12 @@ import { useRouter } from "@/i18n/navigation";
 import { getGroup, upsertGroup, type AllocatorGroup, type AllocatorRecipient } from "@/lib/allocator";
 import { COUNTRIES, getCountryConfig, type OfframpProvider } from "@/config/countries";
 
-const ROUTE_LABELS: Record<OfframpProvider, string> = {
+const ROUTE_LABELS: Record<OfframpProvider | "vault", string> = {
   minipay: "MiniPay",
   fonbnk: "Fonbnk",
   localcrypto: "Local Crypto",
   transak: "Bank / eWallet",
+  vault: "Savings Vault",
 };
 
 function makeId(): string {
@@ -18,7 +19,7 @@ function makeId(): string {
 
 type AddForm = {
   name: string;
-  route: OfframpProvider;
+  route: OfframpProvider | "vault";
   countryId: string;
   recipientAddress: string;
   recipientDisplay: string;
@@ -81,7 +82,7 @@ export default function EditGroupPage({ params }: Props) {
     const amountNum = parseFloat(form.defaultAmount);
     if (!Number.isFinite(amountNum) || amountNum <= 0) return;
 
-    if (form.route !== "fonbnk") {
+    if (form.route !== "fonbnk" && form.route !== "vault") {
       const addr = form.recipientAddress.trim();
       if (!addr) return;
       // For minipay, accept resolved 0x addresses only (phone resolution happens in the send flow)
@@ -93,8 +94,8 @@ export default function EditGroupPage({ params }: Props) {
       name: form.name.trim().slice(0, 30),
       route: form.route,
       countryId: form.countryId,
-      recipientAddress: form.route === "fonbnk" ? "" : form.recipientAddress.trim(),
-      recipientDisplay: form.route === "fonbnk" ? `Fonbnk (${country.currencyCode})` : (form.recipientDisplay.trim() || form.recipientAddress.trim()),
+      recipientAddress: (form.route === "fonbnk" || form.route === "vault") ? "" : form.recipientAddress.trim(),
+      recipientDisplay: form.route === "vault" ? "Savings Vault (Aave v3)" : (form.route === "fonbnk" ? `Fonbnk (${country.currencyCode})` : (form.recipientDisplay.trim() || form.recipientAddress.trim())),
       defaultAmount: amountNum.toFixed(6),
     };
 
@@ -133,7 +134,7 @@ export default function EditGroupPage({ params }: Props) {
 
   const canAddRecipient =
     form.name.trim() &&
-    (form.route === "fonbnk" || VALID_ADDRESS.test(form.recipientAddress.trim())) &&
+    (form.route === "fonbnk" || form.route === "vault" || VALID_ADDRESS.test(form.recipientAddress.trim())) &&
     Number.isFinite(parseFloat(form.defaultAmount)) &&
     parseFloat(form.defaultAmount) > 0;
 
@@ -256,16 +257,17 @@ export default function EditGroupPage({ params }: Props) {
               <select
                 className="input-field"
                 value={form.route}
-                onChange={(e) => setForm((f) => ({ ...f, route: e.target.value as OfframpProvider }))}
+                onChange={(e) => setForm((f) => ({ ...f, route: e.target.value as any }))}
                 style={{ appearance: "none" }}
               >
                 {supportedRoutes.map((r) => (
                   <option key={r} value={r}>{ROUTE_LABELS[r]}</option>
                 ))}
+                <option value="vault">Savings Vault (Aave v3)</option>
               </select>
             </div>
 
-            {form.route !== "fonbnk" && (
+            {form.route !== "fonbnk" && form.route !== "vault" && (
               <div className="input-group">
                 <label className="input-label">Wallet address (0x...)</label>
                 <input

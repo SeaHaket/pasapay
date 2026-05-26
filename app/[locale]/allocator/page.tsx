@@ -16,6 +16,7 @@ function routeBadgeColor(route: string): string {
   if (route === "fonbnk") return "#9C27B0";
   if (route === "localcrypto") return "#FF9800";
   if (route === "minipay") return "var(--green)";
+  if (route === "vault") return "#00B0FF";
   return "var(--text-secondary)";
 }
 

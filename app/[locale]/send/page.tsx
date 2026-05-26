@@ -290,7 +290,7 @@ export default function SendPage() {
           <>
             <p className="section-title">{t("to")}</p>
             <RecipientInput
-              route={route ?? "minipay"}
+              route={route === "vault" ? "minipay" : (route ?? "minipay")}
               onResolved={(addr, display) => { setRecipientAddress(addr); setRecipientDisplay(display); }}
             />
             <button

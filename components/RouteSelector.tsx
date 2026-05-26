@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Smartphone, CircleDollarSign, Coins, Landmark } from "lucide-react";
 import { OfframpProvider } from "@/config/countries";
 
-export type SendRoute = OfframpProvider;
+export type SendRoute = OfframpProvider | "vault";
 
 type Props = {
   selected: SendRoute | null;
@@ -36,7 +36,7 @@ export default function RouteSelector({ selected, onSelect, supported, localCryp
   const t = useTranslations("send");
   const [shownNote, setShownNote] = useState<SendRoute | null>(null);
 
-  const visibleRoutes = ROUTES.filter(r => supported.includes(r.id));
+  const visibleRoutes = ROUTES.filter(r => supported.includes(r.id as OfframpProvider));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
