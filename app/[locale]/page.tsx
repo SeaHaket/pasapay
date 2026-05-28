@@ -7,7 +7,8 @@ import { useMiniPay } from "@/hooks/useMiniPay";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import BalanceCard from "@/components/BalanceCard";
 import AppHeader from "@/components/AppHeader";
-import QuickSend from "@/components/QuickSend";
+import dynamic from "next/dynamic";
+const QuickSend = dynamic(() => import("@/components/QuickSend"), { ssr: false });
 import { COUNTRIES, getCountryConfig } from "@/config/countries";
 import { loadHistory, getQuickContacts, type HistoryEntry, type QuickContact } from "@/lib/history";
 

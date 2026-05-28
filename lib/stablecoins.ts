@@ -1,4 +1,4 @@
-import { createPublicClient, http, erc20Abi, formatUnits } from "viem";
+import { createPublicClient, http, formatUnits } from "viem";
 import { celo } from "viem/chains";
 import { STABLECOINS, MINIPAY_DEPOSIT_DEEPLINK } from "./constants";
 
@@ -14,6 +14,18 @@ export type StablecoinBalance = {
   formatted: string;
 };
 
+// Minimal ERC20 ABI for balance checks
+const balanceOfAbi = [
+  {
+    constant: true,
+    inputs: [{ name: "_owner", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "balance", type: "uint256" }],
+    type: "function",
+    stateMutability: "view",
+  },
+] as const;
+
 const publicClient = createPublicClient({ chain: celo, transport: http(process.env.NEXT_PUBLIC_CELO_RPC ?? "https://forno.celo.org") });
 
 /** Fetch all three stablecoin balances for a given address */
@@ -22,7 +34,7 @@ export async function getAllBalances(user: `0x${string}`): Promise<StablecoinBal
     STABLECOINS.map(async (token) => {
       const raw = await publicClient.readContract({
         address: token.address,
-        abi: erc20Abi,
+        abi: balanceOfAbi,
         functionName: "balanceOf",
         args: [user],
       });
