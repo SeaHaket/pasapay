@@ -32,15 +32,13 @@ export function useMiniPay(): MiniPayState {
 
   const refreshBalances = useCallback(async () => {
     if (!address) return;
-    const [all, pref] = await Promise.all([
-      getAllBalances(address),
-      getPreferredStablecoin(address),
-    ]);
-    setBalances(all);
-    setPreferred(pref);
+    const all = await getAllBalances(address);
+    const usdtOnly = all.filter(b => b.symbol === "USDT");
+    setBalances(usdtOnly);
+    setPreferred(usdtOnly[0] || null);
 
     // MiniPay requirement: redirect to deposit deeplink if zero balance
-    if (pref === null && typeof window !== "undefined") {
+    if ((!usdtOnly[0] || usdtOnly[0].raw === 0n) && typeof window !== "undefined") {
       // Only redirect if we're actually in MiniPay and all balances are zero
       // Don't auto-redirect — let the UI show the deposit button instead
     }
