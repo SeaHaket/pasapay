@@ -57,7 +57,11 @@
     "editContact": "I-edit ang kontak",
     "contactSaved": "Na-save bilang",
     "contactNamePlaceholder": "hal. Nanay, Juan, GCash wallet",
-    "pickContact": "Pumili mula sa Mga Kontak"
+    "pickContact": "Pumili mula sa Mga Kontak",
+    "manageContactsLink": "Pamahalaan",
+    "manageContacts": "Pamahalaan ang mga Wallet",
+    "manageContactsDesc": "Palitan ang pangalan o tanggalin ang iyong mga na-save na kontak",
+    "noSavedContacts": "Walang nahanap na mga na-save na kontak para sa opsyong ito."
   },
   "confirm": {
     "title": "Kumpirmahin ang Paglipat",

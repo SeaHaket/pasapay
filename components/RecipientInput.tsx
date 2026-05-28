@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { ScanLine } from "lucide-react";
+import { ScanLine, Settings } from "lucide-react";
 import { truncateAddress } from "@/lib/celoscan";
 import { OfframpProvider } from "@/config/countries";
 import dynamic from "next/dynamic";
 
 const QrScannerModal = dynamic(() => import("@/components/QrScannerModal"), { ssr: false });
+const ManageContactsModal = dynamic(() => import("@/components/ManageContactsModal"), { ssr: false });
 
 export type Contact = {
   name?: string;
@@ -34,6 +35,21 @@ export function persistContact(contact: Contact) {
   localStorage.setItem("pp_contacts", JSON.stringify(all.slice(0, 20)));
 }
 
+export function deleteContact(address: string, route: string) {
+  const all = loadContacts();
+  const filtered = all.filter(c => !(c.address === address && c.route === route));
+  localStorage.setItem("pp_contacts", JSON.stringify(filtered));
+}
+
+export function updateContact(address: string, route: string, newName: string) {
+  const all = loadContacts();
+  const idx = all.findIndex(c => c.address === address && c.route === route);
+  if (idx >= 0) {
+    all[idx].name = newName;
+    localStorage.setItem("pp_contacts", JSON.stringify(all));
+  }
+}
+
 export default function RecipientInput({ route, onResolved }: Props) {
   const t = useTranslations("send");
   const tc = useTranslations("common");
@@ -44,6 +60,7 @@ export default function RecipientInput({ route, onResolved }: Props) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [showPhoneNote, setShowPhoneNote] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [showManage, setShowManage] = useState(false);
 
   // Save-contact form state
   const [showSaveForm, setShowSaveForm] = useState(false);
@@ -51,6 +68,11 @@ export default function RecipientInput({ route, onResolved }: Props) {
   const [savedAsName, setSavedAsName] = useState<string | null>(null);
 
   useEffect(() => { setContacts(loadContacts()); }, []);
+
+  function handleCloseManage() {
+    setShowManage(false);
+    setContacts(loadContacts());
+  }
   const isWalletOnly = route === "localcrypto";
   const isMiniPayEnv =
     typeof window !== "undefined" &&
@@ -179,9 +201,19 @@ export default function RecipientInput({ route, onResolved }: Props) {
         )}
         {routeContacts.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8, fontWeight: 600 }}>
-              {tc("recentContacts")}
-            </p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0, fontWeight: 600 }}>
+                {tc("recentContacts")}
+              </p>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => setShowManage(true)}
+                style={{ width: "auto", padding: "2px 8px", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}
+              >
+                <Settings size={12} /> {t("manageContactsLink")}
+              </button>
+            </div>
             <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
               {routeContacts.map(c => (
                 <button
@@ -238,9 +270,19 @@ export default function RecipientInput({ route, onResolved }: Props) {
       {/* Saved contacts chips */}
       {routeContacts.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8, fontWeight: 600 }}>
-            {tc("recentContacts")}
-          </p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0, fontWeight: 600 }}>
+              {tc("recentContacts")}
+            </p>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => setShowManage(true)}
+              style={{ width: "auto", padding: "2px 8px", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}
+            >
+              <Settings size={12} /> {t("manageContactsLink")}
+            </button>
+          </div>
           <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
             {routeContacts.map(c => (
               <button
@@ -368,6 +410,13 @@ export default function RecipientInput({ route, onResolved }: Props) {
         <p style={{ color: "var(--error)", fontSize: 12, marginTop: 4 }}>
           {t("notFound")}
         </p>
+      )}
+
+      {showManage && (
+        <ManageContactsModal
+          route={route}
+          onClose={handleCloseManage}
+        />
       )}
     </div>
   );

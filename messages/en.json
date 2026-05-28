@@ -57,7 +57,11 @@
     "editContact": "Edit contact",
     "contactSaved": "Saved as",
     "contactNamePlaceholder": "e.g. Mom, John, GCash wallet",
-    "pickContact": "Pick from Contacts"
+    "pickContact": "Pick from Contacts",
+    "manageContactsLink": "Manage",
+    "manageContacts": "Manage Saved Wallets",
+    "manageContactsDesc": "Rename or delete your saved contacts and recipient wallets",
+    "noSavedContacts": "No saved contacts found for this offramp option."
   },
   "confirm": {
     "title": "Confirm Transfer",
