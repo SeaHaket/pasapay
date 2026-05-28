@@ -4,23 +4,26 @@ import { X, Camera, Upload } from "lucide-react";
 
 // Matches plain 0x EVM addresses and strips common URI prefixes:
 // ethereum:0x...  /  celo:0x...  /  arbitrum:0x...  and ?query params
-const WALLET_RE = /^0x[0-9a-fA-F]{40}$/;
+const EVM_WALLET_RE = /^0x[0-9a-fA-F]{40}$/;
+const SOLANA_WALLET_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-function parseAddress(raw: string): string | null {
+function parseAddress(raw: string, isSolana?: boolean): string | null {
   const stripped = raw
-    .replace(/^(ethereum|celo|arbitrum|eip155:\d+):/i, "")
+    .replace(/^(ethereum|celo|arbitrum|solana|eip155:\d+):/i, "")
     .split("?")[0]
     .split("@")[0]
     .trim();
-  return WALLET_RE.test(stripped) ? stripped : null;
+  const re = isSolana ? SOLANA_WALLET_RE : EVM_WALLET_RE;
+  return re.test(stripped) ? stripped : null;
 }
 
 type Props = {
   onScan: (address: string) => void;
   onClose: () => void;
+  isSolana?: boolean;
 };
 
-export default function QrScannerModal({ onScan, onClose }: Props) {
+export default function QrScannerModal({ onScan, onClose, isSolana }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,7 +45,7 @@ export default function QrScannerModal({ onScan, onClose }: Props) {
           videoRef.current,
           (result: { data: string }) => {
             if (cancelled || doneRef.current) return;
-            const address = parseAddress(result.data);
+            const address = parseAddress(result.data, isSolana);
             if (address) {
               doneRef.current = true;
               scanner.stop();
@@ -91,7 +94,7 @@ export default function QrScannerModal({ onScan, onClose }: Props) {
     try {
       const QrScanner = (await import("qr-scanner")).default;
       const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
-      const address = parseAddress(result.data);
+      const address = parseAddress(result.data, isSolana);
       if (address) {
         doneRef.current = true;
         scannerRef.current?.stop();
@@ -122,7 +125,9 @@ export default function QrScannerModal({ onScan, onClose }: Props) {
       }}>
         <div style={{ flex: 1 }}>
           <p style={{ color: "#fff", fontWeight: 700, fontSize: 16, margin: 0 }}>Scan Wallet QR Code</p>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "2px 0 0" }}>Celo or Arbitrum address</p>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "2px 0 0" }}>
+            {isSolana ? "Solana address" : "Celo or Arbitrum address"}
+          </p>
         </div>
         {/* Hidden file input for image upload */}
         <input

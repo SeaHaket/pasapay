@@ -2,7 +2,7 @@ export type HistoryEntry = {
   id: string;
   timestamp: number;
   hash: string;
-  chain: "celo" | "arbitrum";
+  chain: "celo" | "arbitrum" | "solana";
   amount: string;
   tokenSymbol: string;
   route: string;

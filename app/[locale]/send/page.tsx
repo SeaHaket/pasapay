@@ -29,7 +29,7 @@ export default function SendPage() {
 
   const [amount, setAmount] = useState("0");
   const [route, setRoute] = useState<SendRoute | null>(null);
-  const [recipientAddress, setRecipientAddress] = useState<`0x${string}` | null>(null);
+  const [recipientAddress, setRecipientAddress] = useState<string | null>(null);
   const [recipientDisplay, setRecipientDisplay] = useState("");
   const [step, setStep] = useState<"amount" | "route" | "recipient" | "review">("amount");
   const [isQuickSend, setIsQuickSend] = useState(false);
@@ -44,12 +44,12 @@ export default function SendPage() {
     sessionStorage.removeItem("pp_quicksend");
     try {
       const qs = JSON.parse(raw);
-      const VALID_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-      const VALID_ROUTES: SendRoute[] = ["minipay", "localcrypto", "transak", "fonbnk"];
+      const VALID_ADDRESS = /^0x[0-9a-fA-F]{40}$|^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+      const VALID_ROUTES: SendRoute[] = ["minipay", "localcrypto", "transak", "fonbnk", "solana"];
       const VALID_COUNTRIES = /^[A-Z]{2}$/;
       // Reject the payload if the address is present but malformed
       if (qs.recipientAddress && !VALID_ADDRESS.test(qs.recipientAddress)) return;
-      if (qs.recipientAddress) setRecipientAddress(qs.recipientAddress as `0x${string}`);
+      if (qs.recipientAddress) setRecipientAddress(qs.recipientAddress as string);
       if (qs.recipientDisplay && typeof qs.recipientDisplay === "string")
         setRecipientDisplay(qs.recipientDisplay.slice(0, 100));
       if (qs.countryId && VALID_COUNTRIES.test(qs.countryId)) setCountryId(qs.countryId);
@@ -61,11 +61,19 @@ export default function SendPage() {
   const amountNum = parseFloat(amount) || 0;
   const hasBalance = amountNum > 0 && amountNum <= (preferred?.human ?? 0);
 
-  // Auto-fetch bridge quote when on review step for localcrypto
+  // Auto-fetch bridge quote when on review step for localcrypto or solana
   useEffect(() => {
-    if (step === "review" && route === "localcrypto" && address && recipientAddress && preferred && amountNum > 0 && rate) {
+    const isBridgeRoute = route === "localcrypto" || route === "solana";
+    if (step === "review" && isBridgeRoute && address && recipientAddress && preferred && amountNum > 0 && rate) {
       const raw = parseUnits(amount, preferred.decimals);
-      fetchQuote({ fromAddress: address, toAddress: recipientAddress, token: preferred, amountRaw: raw, exchangeRate: rate ?? 0 });
+      fetchQuote({ 
+        fromAddress: address, 
+        toAddress: recipientAddress, 
+        token: preferred, 
+        amountRaw: raw, 
+        exchangeRate: rate ?? 0,
+        toChain: route === "solana" ? "solana" : "arbitrum"
+      });
     }
   }, [step, route]);
 
@@ -133,9 +141,10 @@ export default function SendPage() {
 
     try {
       let hash: string;
-      let chain: "celo" | "arbitrum" = "celo";
+      let chain: "celo" | "arbitrum" | "solana" = "celo";
 
-      if (route === "localcrypto" && quote?.route) {
+      const isBridgeRoute = route === "localcrypto" || route === "solana";
+      if (isBridgeRoute && quote?.route) {
         const result = await executeBridge(
           quote.route,
           address,
@@ -144,12 +153,13 @@ export default function SendPage() {
         );
         if (!result.success || !result.txHash) throw new Error(result.error || "Bridge failed — please try again");
         hash = result.txHash;
+        chain = route === "solana" ? "solana" as any : "celo";
       } else {
         const amountRaw = parseUnits(amount, preferred.decimals);
         const data = encodeFunctionData({
           abi: erc20Abi,
           functionName: "transfer",
-          args: [recipientAddress, amountRaw],
+          args: [recipientAddress as `0x${string}`, amountRaw],
         });
         hash = await sendTransaction({
           to: preferred.address as `0x${string}`,
@@ -320,9 +330,9 @@ export default function SendPage() {
             )}
 
             <FeeBreakdown
-              bridgeQuote={route === "localcrypto" ? quote : undefined}
+              bridgeQuote={(route === "localcrypto" || route === "solana") ? quote : undefined}
               toLocalFiat={(usd) => toLocalFiat(usd, country.currencySymbol)}
-              isLoading={route === "localcrypto" && bridgeStatus === "quoting"}
+              isLoading={(route === "localcrypto" || route === "solana") && bridgeStatus === "quoting"}
             />
 
             {route === "fonbnk" && PASAPAY_FEE_ADDRESS && (
@@ -346,7 +356,7 @@ export default function SendPage() {
             <button
               className="btn btn--primary mt-16"
               onClick={handleConfirm}
-              disabled={sending || (route === "localcrypto" && bridgeStatus === "quoting")}
+              disabled={sending || ((route === "localcrypto" || route === "solana") && bridgeStatus === "quoting")}
             >
               {sending
                 ? <><span className="spinner" /> {sendStep}</>

@@ -6,7 +6,7 @@ import StatusTracker from "@/components/StatusTracker";
 import BlockchainReceipt from "@/components/BlockchainReceipt";
 import { loadHistory } from "@/lib/history";
 
-type TxData = { hash: string; route: string; chain: "celo" | "arbitrum" };
+type TxData = { hash: string; route: string; chain: "celo" | "arbitrum" | "solana" };
 
 export default function StatusPage() {
   const t = useTranslations("status");

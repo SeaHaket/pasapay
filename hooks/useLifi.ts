@@ -21,10 +21,11 @@ export function useLifi() {
 
   const fetchQuote = useCallback(async (params: {
     fromAddress: `0x${string}`;
-    toAddress: `0x${string}`;
+    toAddress: string;
     token: StablecoinBalance;
     amountRaw: bigint;
     exchangeRate: number;
+    toChain?: "arbitrum" | "solana";
   }) => {
     setStatus("quoting");
     setError(null);
@@ -37,6 +38,7 @@ export function useLifi() {
         fromDecimals: params.token.decimals,
         amountRaw: params.amountRaw,
         exchangeRate: params.exchangeRate,
+        toChain: params.toChain,
       });
       if (!result) throw new Error("No route found");
       setQuote(result);
