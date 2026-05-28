@@ -17,11 +17,10 @@ export type Contact = {
 
 type Props = {
   route: OfframpProvider;
-  onResolved: (address: any, display: string) => void;
+  onResolved: (address: `0x${string}` | null, display: string) => void;
 };
 
-const EVM_WALLET_RE = /^0x[0-9a-fA-F]{40}$/;
-const SOLANA_WALLET_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const WALLET_RE = /^0x[0-9a-fA-F]{40}$/;
 
 export function loadContacts(): Contact[] {
   try { return JSON.parse(localStorage.getItem("pp_contacts") || "[]"); } catch { return []; }
@@ -39,10 +38,6 @@ export default function RecipientInput({ route, onResolved }: Props) {
   const t = useTranslations("send");
   const tc = useTranslations("common");
 
-  const isWalletOnly = route === "localcrypto" || route === "solana";
-  const isSolana = route === "solana";
-  const WALLET_RE = isSolana ? SOLANA_WALLET_RE : EVM_WALLET_RE;
-
   const [walletValue, setWalletValue] = useState("");
   const [pickedContact, setPickedContact] = useState<{ name: string; address: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +51,7 @@ export default function RecipientInput({ route, onResolved }: Props) {
   const [savedAsName, setSavedAsName] = useState<string | null>(null);
 
   useEffect(() => { setContacts(loadContacts()); }, []);
+  const isWalletOnly = route === "localcrypto";
   const isMiniPayEnv =
     typeof window !== "undefined" &&
     (window.ethereum as any)?.isMiniPay === true;
@@ -179,7 +175,6 @@ export default function RecipientInput({ route, onResolved }: Props) {
           <QrScannerModal
             onScan={(address) => { setShowQr(false); handleWalletChange(address); }}
             onClose={() => setShowQr(false)}
-            isSolana={isSolana}
           />
         )}
         {routeContacts.length > 0 && (
@@ -202,9 +197,7 @@ export default function RecipientInput({ route, onResolved }: Props) {
           </div>
         )}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label className="input-label" style={{ margin: 0 }}>
-            {isSolana ? "Solana Wallet Address" : t("recipientWallet")}
-          </label>
+          <label className="input-label" style={{ margin: 0 }}>{t("recipientWallet")}</label>
           <button
             className="btn btn--ghost"
             onClick={() => setShowQr(true)}
@@ -216,7 +209,7 @@ export default function RecipientInput({ route, onResolved }: Props) {
         <input
           id="recipient-wallet"
           className={`input-field${error ? " input-field--error" : ""}`}
-          placeholder={isSolana ? "Paste Solana address..." : t("recipientWalletPlaceholder")}
+          placeholder={t("recipientWalletPlaceholder")}
           value={walletValue}
           onChange={e => handleWalletChange(e.target.value)}
           autoComplete="off"
@@ -224,25 +217,11 @@ export default function RecipientInput({ route, onResolved }: Props) {
         />
         {error && <p style={{ color: "var(--error)", fontSize: 12, marginTop: 4 }}>{error}</p>}
         {isValid && <SaveForm addr={walletValue} displayValue={truncateAddress(walletValue)} />}
-        <div style={{ 
-          marginTop: 12, 
-          padding: "12px", 
-          borderRadius: "8px", 
-          background: isSolana ? "rgba(20, 241, 149, 0.08)" : "rgba(255, 152, 0, 0.1)", 
-          border: isSolana ? "1px solid rgba(20, 241, 149, 0.25)" : "1px solid rgba(255, 152, 0, 0.3)" 
-        }}>
-          <p style={{ 
-            color: isSolana ? "#14F195" : "#FF9800", 
-            fontSize: 13, 
-            lineHeight: 1.4, 
-            margin: 0, 
-            display: "flex", 
-            gap: 6, 
-            alignItems: "flex-start" 
-          }}>
+        <div style={{ marginTop: 12, padding: "12px", borderRadius: "8px", background: "rgba(255, 152, 0, 0.1)", border: "1px solid rgba(255, 152, 0, 0.3)" }}>
+          <p style={{ color: "#FF9800", fontSize: 13, lineHeight: 1.4, margin: 0, display: "flex", gap: 6, alignItems: "flex-start" }}>
             <span style={{ fontSize: 16 }}>⚠️</span>
             <span>
-              <strong>Important:</strong> Paste a <strong>{isSolana ? "Solana (SOL)" : "Arbitrum (ARB)"}</strong> network address from your local exchange account (like Coins.ph). Do not use other networks or your funds will be lost!
+              <strong>Important:</strong> Paste an <strong>Arbitrum (ARB)</strong> network address from your local exchange account. Do not use other networks or your funds will be lost!
             </span>
           </p>
         </div>

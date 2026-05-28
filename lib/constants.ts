@@ -18,11 +18,6 @@ export const ODIS_PAYMENTS_ADDRESS = "0xAE6B29f31B96e61DdDc792f45fDa4e4F0356D0CB
 // ─── Chain IDs ────────────────────────────────────────────────────────────────
 export const CELO_CHAIN_ID = 42220;
 export const ARBITRUM_CHAIN_ID = 42161;
-export const SOLANA_CHAIN_ID = 1151111081099710;
-
-// ─── Solana token addresses ───────────────────────────────────────────────────
-export const SOL_USDC_ADDRESS = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" as const;
-export const SOL_USDT_ADDRESS = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" as const;
 
 // ─── Celo RPC ─────────────────────────────────────────────────────────────────
 export const CELO_RPC = "https://forno.celo.org";
@@ -68,4 +63,3 @@ export type StablecoinSymbol = "USDT" | "USDC" | "USDm";
 // ─── LI.fi chain keys ────────────────────────────────────────────────────────
 export const LIFI_CELO_CHAIN = "CEL";
 export const LIFI_ARBITRUM_CHAIN = "ARB";
-export const LIFI_SOLANA_CHAIN = "SOL";

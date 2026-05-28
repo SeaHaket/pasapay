@@ -1,4 +1,4 @@
-import { CELO_CHAIN_ID, ARBITRUM_CHAIN_ID, SOLANA_CHAIN_ID, SOL_USDC_ADDRESS } from "./constants";
+import { CELO_CHAIN_ID, ARBITRUM_CHAIN_ID } from "./constants";
 import type { Route } from "@lifi/sdk";
 
 export const ARB_USDT_ADDRESS = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
@@ -38,26 +38,22 @@ export type BridgeQuote = {
 
 export type QuoteParams = {
   fromAddress: `0x${string}`;
-  toAddress: string;
+  toAddress: `0x${string}`;
   fromToken: `0x${string}`;
   fromDecimals: number;
   amountRaw: bigint;
   exchangeRate: number;
-  toChain?: "arbitrum" | "solana";
 };
 
 export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote | null> {
   try {
     const { getRoutes } = await getSdk();
-    const { fromAddress, toAddress, fromToken, fromDecimals, amountRaw, exchangeRate, toChain } = params;
-    const isSolana = toChain === "solana";
-    const toChainId = isSolana ? SOLANA_CHAIN_ID : ARBITRUM_CHAIN_ID;
-    const toTokenAddress = isSolana ? SOL_USDC_ADDRESS : ARB_USDT_ADDRESS;
+    const { fromAddress, toAddress, fromToken, fromDecimals, amountRaw, exchangeRate } = params;
     const result = await getRoutes({
       fromChainId: CELO_CHAIN_ID,
-      toChainId,
+      toChainId: ARBITRUM_CHAIN_ID,
       fromTokenAddress: fromToken,
-      toTokenAddress,
+      toTokenAddress: ARB_USDT_ADDRESS,
       fromAmount: amountRaw.toString(),
       fromAddress,
       toAddress,

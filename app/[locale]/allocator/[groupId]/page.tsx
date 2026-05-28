@@ -9,7 +9,6 @@ const ROUTE_LABELS: Record<OfframpProvider | "vault", string> = {
   minipay: "MiniPay",
   fonbnk: "Fonbnk",
   localcrypto: "Local Crypto",
-  solana: "Solana Wallet",
   transak: "Bank / eWallet",
   vault: "Savings Vault",
 };
@@ -87,8 +86,7 @@ export default function EditGroupPage({ params }: Props) {
       const addr = form.recipientAddress.trim();
       if (!addr) return;
       // For minipay, accept resolved 0x addresses only (phone resolution happens in the send flow)
-      const re = form.route === "solana" ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/ : VALID_ADDRESS;
-      if (!re.test(addr)) return;
+      if (!VALID_ADDRESS.test(addr)) return;
     }
 
     const recipient: AllocatorRecipient = {
@@ -136,7 +134,7 @@ export default function EditGroupPage({ params }: Props) {
 
   const canAddRecipient =
     form.name.trim() &&
-    (form.route === "fonbnk" || form.route === "vault" || (form.route === "solana" ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/ : VALID_ADDRESS).test(form.recipientAddress.trim())) &&
+    (form.route === "fonbnk" || form.route === "vault" || VALID_ADDRESS.test(form.recipientAddress.trim())) &&
     Number.isFinite(parseFloat(form.defaultAmount)) &&
     parseFloat(form.defaultAmount) > 0;
 
@@ -271,19 +269,15 @@ export default function EditGroupPage({ params }: Props) {
 
             {form.route !== "fonbnk" && form.route !== "vault" && (
               <div className="input-group">
-                <label className="input-label">
-                  {form.route === "solana" ? "Solana Wallet Address" : "Wallet address (0x...)"}
-                </label>
+                <label className="input-label">Wallet address (0x...)</label>
                 <input
-                  className={`input-field${form.recipientAddress && !(form.route === "solana" ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/ : VALID_ADDRESS).test(form.recipientAddress.trim()) ? " input-field--error" : ""}`}
-                  placeholder={form.route === "solana" ? "Paste Solana address..." : "0x..."}
+                  className={`input-field${form.recipientAddress && !VALID_ADDRESS.test(form.recipientAddress.trim()) ? " input-field--error" : ""}`}
+                  placeholder="0x..."
                   value={form.recipientAddress}
                   onChange={(e) => setForm((f) => ({ ...f, recipientAddress: e.target.value, recipientDisplay: e.target.value }))}
                 />
-                {form.recipientAddress && !(form.route === "solana" ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/ : VALID_ADDRESS).test(form.recipientAddress.trim()) && (
-                  <p style={{ fontSize: 11, color: "var(--error)", marginTop: 4 }}>
-                    {form.route === "solana" ? "Must be a valid Solana wallet address" : "Must be a valid 0x wallet address"}
-                  </p>
+                {form.recipientAddress && !VALID_ADDRESS.test(form.recipientAddress.trim()) && (
+                  <p style={{ fontSize: 11, color: "var(--error)", marginTop: 4 }}>Must be a valid 0x wallet address</p>
                 )}
               </div>
             )}

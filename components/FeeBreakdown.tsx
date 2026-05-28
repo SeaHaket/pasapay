@@ -50,7 +50,7 @@ export default function FeeBreakdown({ networkFeeUsd, bridgeQuote, toLocalFiat, 
           <div className="fee-row">
             <span className="fee-row__label">{t("theyReceive")}</span>
             <span className="fee-row__value">
-              {bridgeQuote.toAmountUsdt} USDT
+              {bridgeQuote.toAmountUsdt} {bridgeQuote.route.steps[bridgeQuote.route.steps.length - 1]?.action.toToken.symbol ?? "USDT"}
               <span style={{ color: "var(--text-secondary)", fontSize: 12, display: "block" }}>
                 ≈ {toLocalFiat(Number(bridgeQuote.toAmountUsdt))}
               </span>
