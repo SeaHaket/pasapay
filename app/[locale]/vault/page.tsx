@@ -8,7 +8,6 @@ import { useMiniPay } from "@/hooks/useMiniPay";
 import {
   VAULT_TOKENS,
   getATokenBalance,
-  getSupplyAPY,
   getAllowance,
   encodeApprove,
   encodeSupply,
@@ -18,17 +17,21 @@ import {
   // Morpho Blue (Feather) helpers
   getFeatherBalance,
   getFeatherShares,
-  getFeatherAPY,
   getFeatherAllowance,
   encodeFeatherApprove,
   encodeFeatherDeposit,
   encodeFeatherWithdraw,
   encodeFeatherRedeem,
+  // Merkl Claim helpers
+  getLiveAPYs,
+  getMerklRewards,
+  encodeMerklClaim,
+  type MerklReward,
 } from "@/lib/vault";
 import { CELO_RPC } from "@/lib/constants";
 
 type Tab = "deposit" | "withdraw";
-type TxStatus = "idle" | "approving" | "depositing" | "withdrawing" | "done" | "error";
+type TxStatus = "idle" | "approving" | "depositing" | "withdrawing" | "claiming" | "done" | "error";
 
 type VaultBalanceMap = {
   aave: { usdt: bigint; usdc: bigint };
@@ -40,17 +43,12 @@ type VaultAPYMap = {
   morpho: { usdt: number; usdc: number };
 };
 
-function tokenConfig(symbol: VaultTokenSymbol) {
-  return VAULT_TOKENS.find((t) => t.symbol === symbol)!;
-}
-
 export default function VaultPage() {
   const router = useRouter();
   const { address, balances, sendTransaction, refreshBalances } = useMiniPay();
 
   const [tab, setTab] = useState<Tab>("deposit");
   const [protocol, setProtocol] = useState<"aave" | "morpho">("aave");
-  const [selectedToken, setSelectedToken] = useState<VaultTokenSymbol>("USDT");
   const [amount, setAmount] = useState("");
 
   const [vaultBalances, setVaultBalances] = useState<VaultBalanceMap>({
@@ -61,6 +59,7 @@ export default function VaultPage() {
     aave: { usdt: 0, usdc: 0 },
     morpho: { usdt: 0, usdc: 0 },
   });
+  const [rewards, setRewards] = useState<MerklReward[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   const [txStatus, setTxStatus] = useState<TxStatus>("idle");
@@ -71,23 +70,22 @@ export default function VaultPage() {
     if (!address) return;
     setIsLoadingData(true);
     try {
-      const [aaveUsdtBal, aaveUsdcBal, aaveUsdtApy, aaveUsdcApy, morphoUsdtBal, morphoUsdtApy] = await Promise.all([
+      const [aaveUsdtBal, morphoUsdtBal, liveApys, merklRewards] = await Promise.all([
         getATokenBalance(VAULT_TOKENS[0].aTokenAddress, address),
-        getATokenBalance(VAULT_TOKENS[1].aTokenAddress, address),
-        getSupplyAPY(VAULT_TOKENS[0].address),
-        getSupplyAPY(VAULT_TOKENS[1].address),
         getFeatherBalance(address),
-        getFeatherAPY(),
+        getLiveAPYs(),
+        getMerklRewards(address),
       ]);
 
       setVaultBalances({
-        aave: { usdt: aaveUsdtBal, usdc: aaveUsdcBal },
+        aave: { usdt: aaveUsdtBal, usdc: 0n },
         morpho: { usdt: morphoUsdtBal, usdc: 0n },
       });
       setApys({
-        aave: { usdt: aaveUsdtApy, usdc: aaveUsdcApy },
-        morpho: { usdt: morphoUsdtApy, usdc: 0 },
+        aave: { usdt: liveApys.aave, usdc: 0 },
+        morpho: { usdt: liveApys.morpho, usdc: 0 },
       });
+      setRewards(merklRewards);
     } catch {
       // non-blocking — balances may just show zero
     } finally {
@@ -101,36 +99,27 @@ export default function VaultPage() {
 
   const handleProtocolChange = (p: "aave" | "morpho") => {
     setProtocol(p);
-    if (p === "morpho") {
-      setSelectedToken("USDT");
-    }
     setAmount("");
     resetTx();
   };
 
-  const token = tokenConfig(selectedToken);
-  const walletBal = balances.find((b) => b.symbol === selectedToken);
+  const token = VAULT_TOKENS[0]; // 100% USDT-only
+  const walletBal = balances.find((b) => b.symbol === "USDT");
   const walletHuman = walletBal?.human ?? 0;
 
   // Dynamic balance, APY, and limits depending on selected protocol
-  const vaultRaw = protocol === "morpho"
-    ? vaultBalances.morpho.usdt
-    : (selectedToken === "USDT" ? vaultBalances.aave.usdt : vaultBalances.aave.usdc);
-
+  const vaultRaw = protocol === "morpho" ? vaultBalances.morpho.usdt : vaultBalances.aave.usdt;
   const vaultHuman = Number(vaultRaw) / 10 ** token.decimals;
 
-  const currentApy = protocol === "morpho"
-    ? apys.morpho.usdt
-    : (selectedToken === "USDT" ? apys.aave.usdt : apys.aave.usdc);
+  const currentApy = protocol === "morpho" ? apys.morpho.usdt : apys.aave.usdt;
 
-  const totalVaultUsd =
-    Number(vaultBalances.aave.usdt) / 1e6 +
-    Number(vaultBalances.aave.usdc) / 1e6 +
-    Number(vaultBalances.morpho.usdt) / 1e6;
+  const totalVaultUsd = Number(vaultBalances.aave.usdt) / 1e6 + Number(vaultBalances.morpho.usdt) / 1e6;
 
   const amountNum = parseFloat(amount) || 0;
   const canDeposit = tab === "deposit" && amountNum > 0 && amountNum <= walletHuman && txStatus === "idle";
   const canWithdraw = tab === "withdraw" && amountNum > 0 && amountNum <= vaultHuman && txStatus === "idle";
+
+  const totalClaimableRewards = rewards.reduce((sum, r) => sum + Number(r.claimable) / 1e18, 0);
 
   const DISPLAY_VAULTS = [
     {
@@ -139,13 +128,6 @@ export default function VaultPage() {
       balance: vaultBalances.aave.usdt,
       apy: apys.aave.usdt,
       color: "#26A17B",
-    },
-    {
-      name: "Aave V3",
-      symbol: "USDC",
-      balance: vaultBalances.aave.usdc,
-      apy: apys.aave.usdc,
-      color: "#2775CA",
     },
     {
       name: "Morpho Blue",
@@ -208,7 +190,7 @@ export default function VaultPage() {
       await Promise.all([refreshBalances(), loadVaultData()]);
       setAmount("");
       setTxStatus("done");
-      setTxMsg(`Deposited $${amount} ${selectedToken}`);
+      setTxMsg(`Deposited $${amount} USDT`);
     } catch (err: any) {
       setTxStatus("error");
       setTxError(err?.message ?? "Transaction failed — please try again");
@@ -254,10 +236,33 @@ export default function VaultPage() {
       await Promise.all([refreshBalances(), loadVaultData()]);
       setAmount("");
       setTxStatus("done");
-      setTxMsg(`Withdrawn $${amount} ${selectedToken}`);
+      setTxMsg(`Withdrawn $${amount} USDT`);
     } catch (err: any) {
       setTxStatus("error");
       setTxError(err?.message ?? "Transaction failed — please try again");
+    }
+  }
+
+  async function handleClaimRewards() {
+    if (!address || rewards.length === 0) return;
+    setTxError(null);
+    setTxStatus("claiming");
+    setTxMsg("Claiming Celo incentives…");
+
+    try {
+      const tokens = rewards.map((r) => r.token);
+      const amounts = rewards.map((r) => r.claimable);
+      const proofs = rewards.map((r) => r.proof);
+
+      const { to, data } = encodeMerklClaim(address, tokens, amounts, proofs);
+
+      await sendTransaction({ to, data, feeCurrency: token.feeCurrency });
+      await loadVaultData();
+      setTxStatus("done");
+      setTxMsg("Rewards claimed successfully!");
+    } catch (err: any) {
+      setTxStatus("error");
+      setTxError(err?.message ?? "Claim failed — please try again");
     }
   }
 
@@ -267,7 +272,7 @@ export default function VaultPage() {
     setTxError(null);
   }
 
-  const isBusy = txStatus === "approving" || txStatus === "depositing" || txStatus === "withdrawing";
+  const isBusy = txStatus === "approving" || txStatus === "depositing" || txStatus === "withdrawing" || txStatus === "claiming";
 
   return (
     <>
@@ -311,6 +316,46 @@ export default function VaultPage() {
             ))}
           </div>
         </div>
+
+        {/* Claim Rewards Card */}
+        {rewards.length > 0 && totalClaimableRewards > 0 && (
+          <div style={{
+            background: "linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(0,200,83,0.15) 100%)",
+            borderRadius: 14, padding: "16px", border: "1px solid rgba(139,92,246,0.3)",
+            marginBottom: 20, display: "flex", flexDirection: "column", gap: 12
+          }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <div style={{
+                background: "#8B5CF6", width: 32, height: 32, borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, flexShrink: 0
+              }}>
+                🎁
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>Accumulated Celo Rewards!</h3>
+                <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "4px 0 0", lineHeight: 1.4 }}>
+                  You earned extra rewards from Celo stablecoin incentives! Claim them directly into your wallet.
+                </p>
+              </div>
+            </div>
+            
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "8px 12px" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>Pending Claim:</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "var(--green)" }}>
+                {rewards.map((r) => `${(Number(r.claimable) / 1e18).toFixed(4)} ${r.symbol}`).join(" + ")}
+              </span>
+            </div>
+
+            <button
+              className="btn btn--primary"
+              disabled={isBusy}
+              onClick={handleClaimRewards}
+              style={{ background: "#8B5CF6", color: "#fff", padding: "10px 14px", fontSize: 13, borderRadius: 10, marginTop: 4, width: "100%" }}
+            >
+              {txStatus === "claiming" ? <><span className="spinner" /> Claiming Rewards…</> : "Claim Celo Rewards"}
+            </button>
+          </div>
+        )}
 
         {/* Protocol Selector */}
         <p className="input-label" style={{ marginBottom: 8 }}>Savings Provider</p>
@@ -369,42 +414,20 @@ export default function VaultPage() {
           ))}
         </div>
 
-        {/* Token selector */}
-        {protocol === "aave" ? (
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            {VAULT_TOKENS.map((t) => (
-              <button
-                key={t.symbol}
-                onClick={() => { setSelectedToken(t.symbol); setAmount(""); resetTx(); }}
-                style={{
-                  flex: 1, padding: "10px 12px", borderRadius: 10, border: "2px solid",
-                  borderColor: selectedToken === t.symbol ? t.color : "var(--border)",
-                  background: selectedToken === t.symbol ? `${t.color}18` : "var(--surface)",
-                  color: selectedToken === t.symbol ? t.color : "var(--text-secondary)",
-                  fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "all 0.15s",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                }}
-              >
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.color }} />
-                {t.symbol}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <button
-              disabled
-              style={{
-                flex: 1, padding: "10px 12px", borderRadius: 10, border: "2px solid #8B5CF6",
-                background: "rgba(139,92,246,0.08)", color: "#A78BFA",
-                fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              }}
-            >
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#8B5CF6" }} />
-              USDT (Only supported asset)
-            </button>
-          </div>
-        )}
+        {/* Dynamic Token Badge */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <button
+            disabled
+            style={{
+              flex: 1, padding: "10px 12px", borderRadius: 10, border: "2px solid #26A17B",
+              background: "rgba(38,161,123,0.08)", color: "#26A17B",
+              fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}
+          >
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#26A17B" }} />
+            USDT (Only supported asset)
+          </button>
+        </div>
 
         {tab === "deposit" && (
           <>
@@ -415,7 +438,7 @@ export default function VaultPage() {
                 onClick={() => setAmount(walletHuman.toFixed(6))}
                 style={{ fontSize: 12, color: "var(--green)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}
               >
-                Max: ${walletHuman.toFixed(2)} {selectedToken}
+                Max: ${walletHuman.toFixed(2)} USDT
               </button>
             </div>
             <div style={{ position: "relative", marginBottom: 16 }}>
@@ -433,7 +456,7 @@ export default function VaultPage() {
                 position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
                 fontSize: 13, fontWeight: 700, color: "var(--text-secondary)",
               }}>
-                {selectedToken}
+                USDT
               </span>
             </div>
 
@@ -450,8 +473,8 @@ export default function VaultPage() {
                 </p>
                 <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "2px 0 0", lineHeight: 1.4 }}>
                   {protocol === "morpho"
-                    ? "Powered by Morpho Blue (Feather USDT Vault) on Celo. Yield compounds natively."
-                    : "Powered by Aave v3 on Celo. Yield accrues every block."}
+                    ? "Powered by Morpho Blue (Feather USDT Vault) on Celo. Includes Merkl rewards."
+                    : "Powered by Aave v3 on Celo. Includes Merkl rewards."}
                 </p>
               </div>
             </div>
@@ -467,7 +490,7 @@ export default function VaultPage() {
                 onClick={() => setAmount(vaultHuman.toFixed(6))}
                 style={{ fontSize: 12, color: "var(--green)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}
               >
-                Max: ${vaultHuman.toFixed(2)} {selectedToken}
+                Max: ${vaultHuman.toFixed(2)} USDT
               </button>
             </div>
             <div style={{ position: "relative", marginBottom: 16 }}>
@@ -485,7 +508,7 @@ export default function VaultPage() {
                 position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
                 fontSize: 13, fontWeight: 700, color: "var(--text-secondary)",
               }}>
-                {selectedToken}
+                USDT
               </span>
             </div>
 
@@ -497,7 +520,7 @@ export default function VaultPage() {
               }}>
                 <Info size={16} color="var(--warning)" style={{ flexShrink: 0 }} />
                 <p style={{ fontSize: 13, color: "var(--warning)", margin: 0 }}>
-                  No {selectedToken} deposited yet. Switch to the Deposit tab to start saving.
+                  No USDT deposited yet. Switch to the Deposit tab to start saving.
                 </p>
               </div>
             )}
@@ -581,8 +604,8 @@ export default function VaultPage() {
         {/* Disclaimer */}
         <p style={{ fontSize: 11, color: "var(--text-secondary)", textAlign: "center", marginTop: 20, lineHeight: 1.6, padding: "0 8px" }}>
           {protocol === "morpho"
-            ? "Funds are deposited into Morpho Blue (Feather USDT Vault). APY is variable and based on rolling 7-day performance. Not financial advice."
-            : "Funds are deposited into Aave v3 on Celo. APY is variable and may change. Not financial advice."}
+            ? "Funds are deposited into Morpho Blue (Feather USDT Vault). APY is variable and based on active Merkl Celo incentives. Not financial advice."
+            : "Funds are deposited into Aave v3 on Celo. APY is variable and includes Celo rewards. Not financial advice."}
         </p>
       </main>
     </>

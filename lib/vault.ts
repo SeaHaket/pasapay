@@ -3,15 +3,12 @@ import { celo } from "viem/chains";
 import {
   CELO_RPC,
   USDT_ADDRESS,
-  USDC_ADDRESS,
   USDT_FEE_CURRENCY,
-  USDC_FEE_CURRENCY,
 } from "@/lib/constants";
 
 // ─── Aave v3 Celo Mainnet ────────────────────────────────────────────────────
 export const AAVE_POOL = "0x3E59A31363E2ad014dcbc521c4a0d5757d9f3402" as const;
 export const AUSDT_ADDRESS = "0xDeE98402A302e4D707fB9bf2bac66fAEEc31e8Df" as const;
-export const AUSDC_ADDRESS = "0xFF8309b9e99bfd2D4021bc71a362aBD93dBd4785" as const;
 
 const POOL_ABI = [
   {
@@ -68,7 +65,7 @@ const POOL_ABI = [
   },
 ] as const;
 
-export type VaultTokenSymbol = "USDT" | "USDC";
+export type VaultTokenSymbol = "USDT";
 
 export const VAULT_TOKENS = [
   {
@@ -78,14 +75,6 @@ export const VAULT_TOKENS = [
     decimals: 6,
     feeCurrency: USDT_FEE_CURRENCY as `0x${string}`,
     color: "#26A17B",
-  },
-  {
-    symbol: "USDC" as VaultTokenSymbol,
-    address: USDC_ADDRESS as `0x${string}`,
-    aTokenAddress: AUSDC_ADDRESS as `0x${string}`,
-    decimals: 6,
-    feeCurrency: USDC_FEE_CURRENCY as `0x${string}`,
-    color: "#2775CA",
   },
 ] as const;
 
@@ -114,8 +103,6 @@ export async function getSupplyAPY(assetAddress: `0x${string}`): Promise<number>
     functionName: "getReserveData",
     args: [assetAddress],
   });
-  // currentLiquidityRate is the annualised rate in RAY (1e27).
-  // Divide by seconds-per-year to get the per-second rate, then compound to true APY.
   const SECONDS_PER_YEAR = 31_536_000;
   const apr = Number(data.currentLiquidityRate) / 1e27;
   return ((1 + apr / SECONDS_PER_YEAR) ** SECONDS_PER_YEAR - 1) * 100;
@@ -180,8 +167,6 @@ export function formatBalance(raw: bigint, decimals = 6): string {
 }
 
 // ─── Feather MetaMorpho Vault (Celo Mainnet) ─────────────────────────────────
-// Vault: MetaMorpho v1.1 ERC-4626, underlying asset: USDT (6 decimals)
-// Shares have 18 decimals; underlying USDT has 6 decimals.
 export const FEATHER_USDT_VAULT = "0xb2cDf6403da1ef1Bb911D87D0DD155a699869BC2" as const;
 
 const ERC4626_ABI = [
@@ -237,7 +222,6 @@ const ERC4626_ABI = [
   },
 ] as const;
 
-// Returns max USDT the user can withdraw right now (accounts for Morpho liquidity).
 export async function getFeatherBalance(userAddress: `0x${string}`): Promise<bigint> {
   const client = getClient();
   return client.readContract({
@@ -248,7 +232,6 @@ export async function getFeatherBalance(userAddress: `0x${string}`): Promise<big
   });
 }
 
-// Returns vault shares held by the user (needed for full redeem).
 export async function getFeatherShares(userAddress: `0x${string}`): Promise<bigint> {
   const client = getClient();
   return client.readContract({
@@ -259,13 +242,12 @@ export async function getFeatherShares(userAddress: `0x${string}`): Promise<bigi
   });
 }
 
-// Derives APY from 7-day rolling share-price change (on-chain, no external API needed).
 export async function getFeatherAPY(): Promise<number> {
   const client = getClient();
   try {
     const currentBlock = await client.getBlockNumber();
     const pastBlock = currentBlock > 604_800n ? currentBlock - 604_800n : 1n;
-    const ONE_SHARE = 10n ** 18n; // shares are 18-decimal
+    const ONE_SHARE = 10n ** 18n;
     const [cur, past] = await Promise.all([
       client.readContract({ address: FEATHER_USDT_VAULT, abi: ERC4626_ABI, functionName: "convertToAssets", args: [ONE_SHARE] }),
       client.readContract({ address: FEATHER_USDT_VAULT, abi: ERC4626_ABI, functionName: "convertToAssets", args: [ONE_SHARE], blockNumber: pastBlock }),
@@ -305,7 +287,6 @@ export function encodeFeatherDeposit(
   };
 }
 
-// Use for partial withdrawals (exact USDT amount out).
 export function encodeFeatherWithdraw(
   amount: bigint,
   receiver: `0x${string}`,
@@ -317,7 +298,6 @@ export function encodeFeatherWithdraw(
   };
 }
 
-// Use for full withdrawals (exact shares in — avoids rounding that can cause withdraw to revert).
 export function encodeFeatherRedeem(
   shares: bigint,
   receiver: `0x${string}`,
@@ -326,5 +306,93 @@ export function encodeFeatherRedeem(
   return {
     to: FEATHER_USDT_VAULT,
     data: encodeFunctionData({ abi: ERC4626_ABI, functionName: "redeem", args: [shares, receiver, owner] }),
+  };
+}
+
+// ─── Merkl Rewards & APY ─────────────────────────────────────────────────────
+export const MERKL_DISTRIBUTOR = "0x9C257bDC314dc516e673728D70F45444F6e22412" as const;
+
+export interface MerklReward {
+  token: `0x${string}`;
+  accumulated: bigint;
+  claimable: bigint;
+  proof: `0x${string}`[];
+  symbol: string;
+  decimals: number;
+}
+
+export async function getLiveAPYs(): Promise<{ aave: number; morpho: number }> {
+  try {
+    const res = await fetch("https://yields.llama.fi/pools");
+    const data = await res.json();
+    const celoPools = data.data.filter((p: any) => p.chain === "Celo" && p.symbol === "USDT");
+    const aavePool = celoPools.find((p: any) => p.project === "aave-v3");
+    const morphoPool = celoPools.find((p: any) => p.project === "feather" || p.project === "morpho-blue" || p.project === "morpho");
+
+    return {
+      aave: aavePool ? aavePool.apy : 3.54,
+      morpho: morphoPool ? morphoPool.apy : 4.78,
+    };
+  } catch {
+    return { aave: 3.54, morpho: 4.78 };
+  }
+}
+
+export async function getMerklRewards(userAddress: `0x${string}`): Promise<MerklReward[]> {
+  try {
+    const res = await fetch(`https://api.merkl.xyz/v3/userRewards?user=${userAddress}&chainId=42220`);
+    const data = await res.json();
+    
+    const rewards: MerklReward[] = [];
+    for (const tokenAddress of Object.keys(data)) {
+      const info = data[tokenAddress];
+      const accumulated = BigInt(info.accumulated || "0");
+      const claimable = BigInt(info.claimable || "0");
+      if (claimable > 0n) {
+        const symbol = tokenAddress.toLowerCase() === "0x471ece3750da237f93b8e339c536989b8978a438" ? "CELO" : "USDF";
+        rewards.push({
+          token: tokenAddress as `0x${string}`,
+          accumulated,
+          claimable,
+          proof: info.proof || [],
+          symbol,
+          decimals: 18,
+        });
+      }
+    }
+    return rewards;
+  } catch {
+    return [];
+  }
+}
+
+export function encodeMerklClaim(
+  user: `0x${string}`,
+  tokens: `0x${string}`[],
+  amounts: bigint[],
+  proofs: `0x${string}`[][]
+): { to: `0x${string}`; data: `0x${string}` } {
+  const distributorAbi = [
+    {
+      name: "claim",
+      type: "function",
+      stateMutability: "nonpayable",
+      inputs: [
+        { name: "users", type: "address[]" },
+        { name: "tokens", type: "address[]" },
+        { name: "amounts", type: "uint256[]" },
+        { name: "proofs", type: "bytes32[][]" },
+      ],
+      outputs: [],
+    },
+  ] as const;
+
+  return {
+    to: MERKL_DISTRIBUTOR,
+    data: encodeFunctionData({
+      abi: distributorAbi,
+      functionName: "claim",
+      args: [[user], tokens, amounts, proofs],
+    }),
   };
 }
