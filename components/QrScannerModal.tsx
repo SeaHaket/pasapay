@@ -8,7 +8,7 @@ const WALLET_RE = /^0x[0-9a-fA-F]{40}$/;
 
 function parseAddress(raw: string): string | null {
   const stripped = raw
-    .replace(/^(ethereum|celo|arbitrum|eip155:\d+):/i, "")
+    .replace(/^(ethereum|celo|arbitrum|bsc|binance|eip155:\d+):/i, "")
     .split("?")[0]
     .split("@")[0]
     .trim();
@@ -122,7 +122,7 @@ export default function QrScannerModal({ onScan, onClose }: Props) {
       }}>
         <div style={{ flex: 1 }}>
           <p style={{ color: "#fff", fontWeight: 700, fontSize: 16, margin: 0 }}>Scan Wallet QR Code</p>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "2px 0 0" }}>Celo or Arbitrum address</p>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "2px 0 0" }}>Celo or BNB Smart Chain address</p>
         </div>
         {/* Hidden file input for image upload */}
         <input

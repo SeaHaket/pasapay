@@ -1,12 +1,12 @@
 export const CELOSCAN_BASE = "https://celoscan.io";
-export const ARBISCAN_BASE = "https://arbiscan.io";
+export const BSCSCAN_BASE = "https://bscscan.com";
 
 export function celoscanTx(hash: string): string {
   return `${CELOSCAN_BASE}/tx/${hash}`;
 }
 
-export function arbiscanTx(hash: string): string {
-  return `${ARBISCAN_BASE}/tx/${hash}`;
+export function bscscanTx(hash: string): string {
+  return `${BSCSCAN_BASE}/tx/${hash}`;
 }
 
 export function celoscanAddress(address: string): string {

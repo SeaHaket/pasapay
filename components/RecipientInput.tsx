@@ -221,7 +221,7 @@ export default function RecipientInput({ route, onResolved }: Props) {
           <p style={{ color: "#FF9800", fontSize: 13, lineHeight: 1.4, margin: 0, display: "flex", gap: 6, alignItems: "flex-start" }}>
             <span style={{ fontSize: 16 }}>⚠️</span>
             <span>
-              <strong>Important:</strong> Paste an <strong>Arbitrum (ARB)</strong> network address from your local exchange account. Do not use other networks or your funds will be lost!
+              <strong>Important:</strong> Paste a <strong>BNB Smart Chain (BSC)</strong> network address from your local exchange account. Do not use other networks or your funds will be lost!
             </span>
           </p>
         </div>

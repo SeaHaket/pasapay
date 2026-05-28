@@ -26,7 +26,7 @@
     "routeTransak": "Withdraw to Bank / e-Wallet",
     "routeMinipayDesc": "Send directly to another MiniPay user",
     "routeFonbnkDesc": "Withdraw {currency} to {examples}",
-    "routeLocalCryptoDesc": "Send Stablecoin to a local wallet via Arbitrum",
+    "routeLocalCryptoDesc": "Send Stablecoin to a local wallet via BNB Smart Chain",
     "routeTransakDesc": "Withdraw {currency} to {examples}",
     "recipientPhone": "Phone Number",
     "recipientPhonePlaceholder": "{placeholder}",
@@ -74,7 +74,7 @@
     "title": "Transfer Status",
     "pending": "Processing...",
     "approving": "Approving token...",
-    "bridging": "Bridging to Arbitrum...",
+    "bridging": "Bridging to BNB Smart Chain...",
     "success": "Transfer Complete!",
     "error": "Transfer Failed",
     "viewReceipt": "View Blockchain Receipt",
@@ -83,7 +83,7 @@
     "via": "via {bridge}",
     "step1": "Initiated on Celo",
     "step2": "Bridge relay",
-    "step3": "Delivered on Arbitrum"
+    "step3": "Delivered on BNB Smart Chain"
   },
   "history": {
     "title": "Transaction History",

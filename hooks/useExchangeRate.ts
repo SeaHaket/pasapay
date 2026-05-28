@@ -11,8 +11,8 @@ export function useExchangeRate(targetCurrency: string = "PHP") {
       if (data["usd-coin"] && data["usd-coin"][targetCurrency.toLowerCase()]) {
         setRate(data["usd-coin"][targetCurrency.toLowerCase()]);
       } else {
-        // Fallback: If coingecko fails or misses a currency, use frankfurter.app as a secondary generic API
-        const fallbackRes = await fetch(`https://api.frankfurter.app/latest?from=USD&to=${targetCurrency.toUpperCase()}`);
+        // Fallback: If coingecko fails or misses a currency, use open.er-api.com as a robust secondary generic API
+        const fallbackRes = await fetch("https://open.er-api.com/v6/latest/USD");
         const fallbackData = await fallbackRes.json();
         if (fallbackData.rates && fallbackData.rates[targetCurrency.toUpperCase()]) {
           setRate(fallbackData.rates[targetCurrency.toUpperCase()]);

@@ -133,7 +133,7 @@ export default function SendPage() {
 
     try {
       let hash: string;
-      let chain: "celo" | "arbitrum" = "celo";
+      let chain: "celo" | "bsc" = "celo";
 
       if (route === "localcrypto" && quote?.route) {
         const result = await executeBridge(

@@ -24,7 +24,7 @@
     "routeLocalCrypto": "Lokal na Exchange",
     "routeTransak": "I-withdraw sa Bangko / e-Wallet",
     "routeMinipayDesc": "Direktang magpadala sa ibang MiniPay user",
-    "routeLocalCryptoDesc": "Magpadala ng Stablecoin sa isang lokal na wallet sa pamamagitan ng Arbitrum",
+    "routeLocalCryptoDesc": "Magpadala ng Stablecoin sa isang lokal na wallet sa pamamagitan ng BNB Smart Chain",
     "routeTransakDesc": "I-withdraw ang {currency} sa {examples}",
     "recipientPhone": "Numero ng Telepono",
     "recipientPhonePlaceholder": "{placeholder}",
@@ -74,7 +74,7 @@
     "title": "Katayuan ng Paglipat",
     "pending": "Pinoproseso...",
     "approving": "Inaprubahan ang token...",
-    "bridging": "Ini-bridge sa Arbitrum...",
+    "bridging": "Ini-bridge sa BNB Smart Chain...",
     "success": "Kumpleto ang Paglipat!",
     "error": "Nabigo ang Paglipat",
     "viewReceipt": "Tingnan ang Blockchain Receipt",
@@ -83,7 +83,7 @@
     "via": "sa pamamagitan ng {bridge}",
     "step1": "Sinimulan sa Celo",
     "step2": "Bridge relay",
-    "step3": "Naihatid sa Arbitrum"
+    "step3": "Naihatid sa BNB Smart Chain"
   },
   "history": {
     "title": "Kasaysayan ng Transaksyon",

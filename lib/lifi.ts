@@ -1,7 +1,7 @@
-import { CELO_CHAIN_ID, ARBITRUM_CHAIN_ID } from "./constants";
+import { CELO_CHAIN_ID, BSC_CHAIN_ID } from "./constants";
 import type { Route } from "@lifi/sdk";
 
-export const ARB_USDT_ADDRESS = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
+export const BSC_USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
 
 // Lazy-load: @lifi/sdk is ~71KB and 800ms to parse — only pulled in when a
 // bridge quote is actually requested (localcrypto route, review step).
@@ -51,9 +51,9 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
     const { fromAddress, toAddress, fromToken, fromDecimals, amountRaw, exchangeRate } = params;
     const result = await getRoutes({
       fromChainId: CELO_CHAIN_ID,
-      toChainId: ARBITRUM_CHAIN_ID,
+      toChainId: BSC_CHAIN_ID,
       fromTokenAddress: fromToken,
-      toTokenAddress: ARB_USDT_ADDRESS,
+      toTokenAddress: BSC_USDT_ADDRESS,
       fromAmount: amountRaw.toString(),
       fromAddress,
       toAddress,
@@ -61,7 +61,7 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
     const route = result.routes?.[0];
     if (!route) return null;
     const fromAmt = Number(route.fromAmount) / 10 ** fromDecimals;
-    const toAmt = Number(route.toAmount) / 10 ** 6;
+    const toAmt = Number(route.toAmount) / 10 ** 18;
     const gasCostUsd = route.gasCostUSD ?? "0";
     const feeCostUsd = route.steps.reduce(
       (acc, step) => acc + (step.estimate.feeCosts?.reduce((a, f) => a + Number(f.amountUSD ?? 0), 0) ?? 0),
@@ -127,7 +127,7 @@ export async function executeBridge(
         const approveData = encodeFunctionData({
           abi: erc20Abi,
           functionName: "approve",
-          args: [spender, maxUint256],
+          args: [spender, needed],
         });
         const approvalHash = await walletClient.sendTransaction({
           account: address,
@@ -140,7 +140,7 @@ export async function executeBridge(
     }
 
     // Submit the bridge transaction
-    if (onStatus) onStatus("Bridging to Arbitrum...");
+    if (onStatus) onStatus("Bridging to BNB Smart Chain...");
     const txReq = freshStep.transactionRequest;
     const bridgeHash = await walletClient.sendTransaction({
       account: address,

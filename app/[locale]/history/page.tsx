@@ -5,7 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { Home, Send, Clock, PiggyBank, Inbox, ChevronDown, ChevronUp, ExternalLink, Copy, Check } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { loadHistory, type HistoryEntry } from "@/lib/history";
-import { celoscanTx, arbiscanTx } from "@/lib/celoscan";
+import { celoscanTx, bscscanTx } from "@/lib/celoscan";
 
 const ROUTE_LABELS: Record<string, string> = {
   minipay: "MiniPay",
@@ -36,7 +36,7 @@ function TxCard({ entry }: { entry: HistoryEntry }) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const explorerUrl = entry.chain === "arbitrum" ? arbiscanTx(entry.hash) : celoscanTx(entry.hash);
+  const explorerUrl = entry.chain === "bsc" ? bscscanTx(entry.hash) : celoscanTx(entry.hash);
   const routeColor = ROUTE_COLORS[entry.route] ?? "var(--text-secondary)";
   const routeLabel = ROUTE_LABELS[entry.route] ?? entry.route;
 
@@ -110,7 +110,7 @@ function TxCard({ entry }: { entry: HistoryEntry }) {
             <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", marginBottom: 3 }}>
               Network
             </p>
-            <p style={{ fontSize: 13 }}>{entry.chain === "arbitrum" ? "Arbitrum" : "Celo"}</p>
+            <p style={{ fontSize: 13 }}>{entry.chain === "bsc" ? "BNB Smart Chain" : "Celo"}</p>
           </div>
 
           {/* TX Hash */}
@@ -141,7 +141,7 @@ function TxCard({ entry }: { entry: HistoryEntry }) {
             style={{ fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
           >
             <ExternalLink size={14} />
-            View on {entry.chain === "arbitrum" ? "Arbiscan" : "Celoscan"}
+            View on {entry.chain === "bsc" ? "BscScan" : "Celoscan"}
           </a>
         </div>
       )}

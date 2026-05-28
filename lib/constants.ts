@@ -17,7 +17,7 @@ export const ODIS_PAYMENTS_ADDRESS = "0xAE6B29f31B96e61DdDc792f45fDa4e4F0356D0CB
 
 // ─── Chain IDs ────────────────────────────────────────────────────────────────
 export const CELO_CHAIN_ID = 42220;
-export const ARBITRUM_CHAIN_ID = 42161;
+export const BSC_CHAIN_ID = 56;
 
 // ─── Celo RPC ─────────────────────────────────────────────────────────────────
 export const CELO_RPC = "https://forno.celo.org";
@@ -62,4 +62,4 @@ export type StablecoinSymbol = "USDT" | "USDC" | "USDm";
 
 // ─── LI.fi chain keys ────────────────────────────────────────────────────────
 export const LIFI_CELO_CHAIN = "CEL";
-export const LIFI_ARBITRUM_CHAIN = "ARB";
+export const LIFI_BSC_CHAIN = "BSC";
