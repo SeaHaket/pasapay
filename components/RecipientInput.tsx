@@ -257,6 +257,13 @@ export default function RecipientInput({ route, onResolved }: Props) {
             </span>
           </p>
         </div>
+
+        {showManage && (
+          <ManageContactsModal
+            route={route}
+            onClose={handleCloseManage}
+          />
+        )}
       </div>
     );
   }
