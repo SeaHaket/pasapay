@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Smartphone, CircleDollarSign, Coins, Landmark } from "lucide-react";
 import { OfframpProvider } from "@/config/countries";
 
-export type SendRoute = OfframpProvider | "vault";
+export type SendRoute = OfframpProvider | "vault" | "vault_aave" | "vault_morpho";
 
 type Props = {
   selected: SendRoute | null;

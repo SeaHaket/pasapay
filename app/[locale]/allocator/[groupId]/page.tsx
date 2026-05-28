@@ -5,12 +5,14 @@ import { useRouter } from "@/i18n/navigation";
 import { getGroup, upsertGroup, type AllocatorGroup, type AllocatorRecipient } from "@/lib/allocator";
 import { COUNTRIES, getCountryConfig, type OfframpProvider } from "@/config/countries";
 
-const ROUTE_LABELS: Record<OfframpProvider | "vault", string> = {
+const ROUTE_LABELS: Record<OfframpProvider | "vault" | "vault_aave" | "vault_morpho", string> = {
   minipay: "MiniPay",
   fonbnk: "Fonbnk",
   localcrypto: "Local Crypto",
   transak: "Bank / eWallet",
-  vault: "Savings Vault",
+  vault: "Savings Vault (Aave V3)",
+  vault_aave: "Savings Vault (Aave V3)",
+  vault_morpho: "Savings Vault (Morpho / Feather)",
 };
 
 function makeId(): string {
@@ -19,7 +21,7 @@ function makeId(): string {
 
 type AddForm = {
   name: string;
-  route: OfframpProvider | "vault";
+  route: OfframpProvider | "vault" | "vault_aave" | "vault_morpho";
   countryId: string;
   recipientAddress: string;
   recipientDisplay: string;
@@ -82,7 +84,7 @@ export default function EditGroupPage({ params }: Props) {
     const amountNum = parseFloat(form.defaultAmount);
     if (!Number.isFinite(amountNum) || amountNum <= 0) return;
 
-    if (form.route !== "fonbnk" && form.route !== "vault") {
+    if (form.route !== "fonbnk" && !form.route.startsWith("vault")) {
       const addr = form.recipientAddress.trim();
       if (!addr) return;
       // For minipay, accept resolved 0x addresses only (phone resolution happens in the send flow)
@@ -94,8 +96,10 @@ export default function EditGroupPage({ params }: Props) {
       name: form.name.trim().slice(0, 30),
       route: form.route,
       countryId: form.countryId,
-      recipientAddress: (form.route === "fonbnk" || form.route === "vault") ? "" : form.recipientAddress.trim(),
-      recipientDisplay: form.route === "vault" ? "Savings Vault (Aave v3)" : (form.route === "fonbnk" ? `Fonbnk (${country.currencyCode})` : (form.recipientDisplay.trim() || form.recipientAddress.trim())),
+      recipientAddress: (form.route === "fonbnk" || form.route.startsWith("vault")) ? "" : form.recipientAddress.trim(),
+      recipientDisplay: form.route === "vault_morpho"
+        ? "Savings Vault (Morpho Blue)"
+        : (form.route === "vault_aave" || form.route === "vault" ? "Savings Vault (Aave v3)" : (form.route === "fonbnk" ? `Fonbnk (${country.currencyCode})` : (form.recipientDisplay.trim() || form.recipientAddress.trim()))),
       defaultAmount: amountNum.toFixed(6),
     };
 
@@ -111,9 +115,10 @@ export default function EditGroupPage({ params }: Props) {
   }
 
   function handleEdit(r: AllocatorRecipient) {
+    const routeMigrated = r.route === "vault" ? "vault_aave" : r.route;
     setForm({
       name: r.name,
-      route: r.route,
+      route: routeMigrated as any,
       countryId: r.countryId,
       recipientAddress: r.recipientAddress,
       recipientDisplay: r.recipientDisplay,
@@ -134,7 +139,7 @@ export default function EditGroupPage({ params }: Props) {
 
   const canAddRecipient =
     form.name.trim() &&
-    (form.route === "fonbnk" || form.route === "vault" || VALID_ADDRESS.test(form.recipientAddress.trim())) &&
+    (form.route === "fonbnk" || form.route.startsWith("vault") || VALID_ADDRESS.test(form.recipientAddress.trim())) &&
     Number.isFinite(parseFloat(form.defaultAmount)) &&
     parseFloat(form.defaultAmount) > 0;
 
@@ -263,11 +268,12 @@ export default function EditGroupPage({ params }: Props) {
                 {supportedRoutes.map((r) => (
                   <option key={r} value={r}>{ROUTE_LABELS[r]}</option>
                 ))}
-                <option value="vault">Savings Vault (Aave v3)</option>
+                <option value="vault_aave">Savings Vault (Aave V3)</option>
+                <option value="vault_morpho">Savings Vault (Morpho / Feather)</option>
               </select>
             </div>
 
-            {form.route !== "fonbnk" && form.route !== "vault" && (
+            {form.route !== "fonbnk" && !form.route.startsWith("vault") && (
               <div className="input-group">
                 <label className="input-label">Wallet address (0x...)</label>
                 <input

@@ -37,8 +37,8 @@ export default function AllocatorSendPage({ params }: Props) {
     setRows(g.recipients.map((r) => ({ recipient: r, amount: r.defaultAmount, status: "pending" })));
   }, [groupId]);
 
-  const cryptoRows = rows.filter((r) => r.recipient.route === "minipay" || r.recipient.route === "vault");
-  const externalRows = rows.filter((r) => r.recipient.route !== "minipay" && r.recipient.route !== "vault");
+  const cryptoRows = rows.filter((r) => r.recipient.route === "minipay" || r.recipient.route.startsWith("vault"));
+  const externalRows = rows.filter((r) => r.recipient.route !== "minipay" && !r.recipient.route.startsWith("vault"));
 
   const allCryptoDone = cryptoRows.every((r) => r.status === "done" || r.status === "error");
   const totalUsd = rows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
@@ -63,15 +63,26 @@ export default function AllocatorSendPage({ params }: Props) {
         continue;
       }
 
-      if (row.recipient.route === "vault") {
+      if (row.recipient.route.startsWith("vault")) {
         updateRow(row.recipient.id, { status: "sending" });
         setCurrentStep(`Saving to vault…`);
         try {
-          const { VAULT_TOKENS, getAllowance, encodeApprove, encodeSupply } = await import("@/lib/vault");
+          const {
+            VAULT_TOKENS,
+            getAllowance,
+            encodeApprove,
+            encodeSupply,
+            getFeatherAllowance,
+            encodeFeatherApprove,
+            encodeFeatherDeposit,
+          } = await import("@/lib/vault");
+
+          const isMorpho = row.recipient.route === "vault_morpho";
+
           // Match preferred token with vault tokens
           let vaultToken = VAULT_TOKENS.find(t => t.symbol === symbol);
-          if (!vaultToken) {
-            // Fallback to USDT
+          if (!vaultToken || isMorpho) {
+            // Fallback to USDT (Morpho only supports USDT)
             vaultToken = VAULT_TOKENS[0];
           }
 
@@ -79,24 +90,43 @@ export default function AllocatorSendPage({ params }: Props) {
 
           // 1. Check Allowance
           setCurrentStep(`Checking vault approval…`);
-          const allowance = await getAllowance(vaultToken.address, address);
-          if (allowance < amountRaw) {
-            setCurrentStep(`Approving ${vaultToken.symbol} for vault…`);
-            const { to: approveTo, data: approveData } = encodeApprove(vaultToken.address, amountRaw);
-            const approveHash = await sendTransaction({
-              to: approveTo,
-              data: approveData,
-              feeCurrency: vaultToken.feeCurrency,
-            });
-            const { createPublicClient, http: httpTransport } = await import("viem");
-            const { celo: celoChain } = await import("viem/chains");
-            const publicClient = createPublicClient({ chain: celoChain, transport: httpTransport(CELO_RPC) });
-            await publicClient.waitForTransactionReceipt({ hash: approveHash as `0x${string}`, timeout: 60_000 });
+          if (isMorpho) {
+            const allowance = await getFeatherAllowance(address);
+            if (allowance < amountRaw) {
+              setCurrentStep(`Approving ${vaultToken.symbol} for Morpho Blue…`);
+              const { to: approveTo, data: approveData } = encodeFeatherApprove(amountRaw);
+              const approveHash = await sendTransaction({
+                to: approveTo,
+                data: approveData,
+                feeCurrency: vaultToken.feeCurrency,
+              });
+              const { createPublicClient, http: httpTransport } = await import("viem");
+              const { celo: celoChain } = await import("viem/chains");
+              const publicClient = createPublicClient({ chain: celoChain, transport: httpTransport(CELO_RPC) });
+              await publicClient.waitForTransactionReceipt({ hash: approveHash as `0x${string}`, timeout: 60_000 });
+            }
+          } else {
+            const allowance = await getAllowance(vaultToken.address, address);
+            if (allowance < amountRaw) {
+              setCurrentStep(`Approving ${vaultToken.symbol} for Aave Vault…`);
+              const { to: approveTo, data: approveData } = encodeApprove(vaultToken.address, amountRaw);
+              const approveHash = await sendTransaction({
+                to: approveTo,
+                data: approveData,
+                feeCurrency: vaultToken.feeCurrency,
+              });
+              const { createPublicClient, http: httpTransport } = await import("viem");
+              const { celo: celoChain } = await import("viem/chains");
+              const publicClient = createPublicClient({ chain: celoChain, transport: httpTransport(CELO_RPC) });
+              await publicClient.waitForTransactionReceipt({ hash: approveHash as `0x${string}`, timeout: 60_000 });
+            }
           }
 
           // 2. Supply/Deposit to Vault
           setCurrentStep(`Depositing ${row.amount} into vault…`);
-          const { to: supplyTo, data: supplyData } = encodeSupply(vaultToken.address, amountRaw, address);
+          const { to: supplyTo, data: supplyData } = isMorpho
+            ? encodeFeatherDeposit(amountRaw, address)
+            : encodeSupply(vaultToken.address, amountRaw, address);
           const hash = await sendTransaction({
             to: supplyTo,
             data: supplyData,
@@ -110,8 +140,8 @@ export default function AllocatorSendPage({ params }: Props) {
             chain: "celo",
             amount: row.amount,
             tokenSymbol: vaultToken.symbol,
-            route: "vault" as any,
-            recipientDisplay: "Personal Savings (Vault)",
+            route: row.recipient.route as any,
+            recipientDisplay: isMorpho ? "Morpho Blue Savings Vault" : "Aave V3 Savings Vault",
             recipientAddress: address,
             countryId: row.recipient.countryId,
             currencyCode: country.currencyCode,

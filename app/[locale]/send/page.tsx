@@ -12,7 +12,7 @@ import RouteSelector, { type SendRoute } from "@/components/RouteSelector";
 import RecipientInput from "@/components/RecipientInput";
 import FeeBreakdown from "@/components/FeeBreakdown";
 import { MINIPAY_DEPOSIT_DEEPLINK, PASAPAY_FEE_ADDRESS, FONBNK_APP_FEE, CELO_RPC } from "@/lib/constants";
-import { COUNTRIES, getCountryConfig } from "@/config/countries";
+import { COUNTRIES, getCountryConfig, type OfframpProvider } from "@/config/countries";
 import { executeBridge } from "@/lib/lifi";
 import { saveTransaction } from "@/lib/history";
 
@@ -290,7 +290,7 @@ export default function SendPage() {
           <>
             <p className="section-title">{t("to")}</p>
             <RecipientInput
-              route={route === "vault" ? "minipay" : (route ?? "minipay")}
+              route={(route && route.startsWith("vault") ? "minipay" : (route ?? "minipay")) as OfframpProvider}
               onResolved={(addr, display) => { setRecipientAddress(addr); setRecipientDisplay(display); }}
             />
             <button
