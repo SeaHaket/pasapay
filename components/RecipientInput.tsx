@@ -165,7 +165,7 @@ export default function RecipientInput({ route, onResolved }: Props) {
     );
   }
 
-  // ── Wallet-only path (localcrypto — ARB address) ──────────────────────────
+  // ── Wallet-only path (localcrypto — BSC address) ──────────────────────────
   if (isWalletOnly) {
     const routeContacts = contacts.filter(c => c.route === route);
     const isValid = WALLET_RE.test(walletValue);

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { X, Camera, Upload } from "lucide-react";
 
 // Matches plain 0x EVM addresses and strips common URI prefixes:
-// ethereum:0x...  /  celo:0x...  /  arbitrum:0x...  and ?query params
+// ethereum:0x...  /  celo:0x...  /  bsc:0x...  and ?query params
 const WALLET_RE = /^0x[0-9a-fA-F]{40}$/;
 
 function parseAddress(raw: string): string | null {
