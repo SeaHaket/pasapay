@@ -2,6 +2,7 @@
 export const USDT_ADDRESS = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e" as const;
 export const USDC_ADDRESS = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C" as const;
 export const USDM_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a" as const;
+export const PASAPAY_BATCH_ROUTER_ADDRESS = (process.env.NEXT_PUBLIC_PASAPAY_BATCH_ROUTER_ADDRESS || "0x0000000000000000000000000000000000000000") as `0x${string}`;
 
 // ─── feeCurrency adapter addresses (for CIP-64 fee abstraction) ──────────────
 // USDC/USDT are 6-decimal tokens — pass their ADAPTER here, not the token address.

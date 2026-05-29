@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:contracts": "hardhat test"
   },
   "dependencies": {
     "@celo/abis": "^14.0.1",
@@ -22,11 +23,15 @@
     "viem": "^2.48.8"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "ethers": "^6.11.1",
+    "hardhat": "^2.22.2",
     "typescript": "^5"
   }
 }

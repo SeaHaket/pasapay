@@ -102,16 +102,18 @@ html, body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 16px 8px;
-  cursor: pointer; transition: all 0.15s ease;
+  cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none; color: var(--text);
 }
-.action-btn:active { transform: scale(0.96); background: var(--surface-raised); }
+.action-btn:hover { border-color: var(--green); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); background: var(--surface-raised); }
+.action-btn:active { transform: scale(0.95); background: var(--surface-raised); filter: brightness(0.9); }
 .action-btn__icon {
   width: 44px; height: 44px; border-radius: 50%;
   background: var(--green-dim);
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
+  font-size: 20px; transition: all 0.2s ease;
 }
+.action-btn:hover .action-btn__icon { transform: translateY(-2px); }
 .action-btn--primary .action-btn__icon { background: var(--green); }
 .action-btn__label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .action-btn--primary .action-btn__label { color: var(--text); }
@@ -123,15 +125,22 @@ html, body {
   border-radius: var(--radius-md);
   font-size: 16px; font-weight: 700;
   cursor: pointer; border: none;
-  transition: all 0.15s ease; text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); text-decoration: none;
 }
-.btn:active { transform: scale(0.97); }
+.btn:active { transform: scale(0.95); filter: brightness(0.9); }
 .btn--primary { background: var(--green); color: #000; }
-.btn--primary:hover { background: var(--green-dark); }
+.btn--primary:hover { background: #00e676; box-shadow: 0 0 16px rgba(0, 200, 83, 0.4); }
+.btn--primary:active { background: var(--green-dark); }
 .btn--secondary { background: var(--surface-raised); color: var(--text); border: 1px solid var(--border); }
+.btn--secondary:hover { background: var(--surface); border-color: rgba(255,255,255,0.25); }
+.btn--secondary:active { background: var(--surface-raised); }
 .btn--ghost { background: transparent; color: var(--text-secondary); }
+.btn--ghost:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+.btn--ghost:active { background: rgba(255, 255, 255, 0.1); }
 .btn--danger { background: rgba(255,82,82,0.15); color: var(--error); border: 1px solid rgba(255,82,82,0.3); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn--danger:hover { background: rgba(255,82,82,0.25); }
+.btn--danger:active { background: rgba(255,82,82,0.35); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; filter: none; }
 
 /* ─── Numpad ─── */
 .numpad-display {
@@ -159,12 +168,14 @@ html, body {
   background: var(--surface);
   border: 1px solid var(--border);
   font-size: 24px; font-weight: 600;
-  cursor: pointer; transition: all 0.1s ease;
+  cursor: pointer; transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text); user-select: none;
 }
-.numpad-key:active { background: var(--surface-raised); transform: scale(0.94); }
+.numpad-key:active { background: var(--surface-raised); transform: scale(0.92); filter: brightness(0.95); }
 .numpad-key--action { background: var(--surface-raised); font-size: 20px; }
 .numpad-key--confirm { background: var(--green); color: #000; font-size: 18px; }
+.numpad-key--confirm:hover { background: #00e676; }
+.numpad-key--confirm:active { background: var(--green-dark); }
 .numpad-key--empty { background: transparent; border-color: transparent; cursor: default; }
 
 /* ─── Route Selector ─── */
@@ -174,12 +185,14 @@ html, body {
   border: 2px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 16px; cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   color: var(--text);
 }
+.route-card:hover { border-color: rgba(0, 200, 83, 0.4); background: rgba(0, 200, 83, 0.03); }
 .route-card:active, .route-card--selected {
   border-color: var(--green);
   background: var(--green-dim);
+  transform: scale(0.98);
 }
 .route-card__icon {
   width: 48px; height: 48px; border-radius: var(--radius-md);
@@ -373,9 +386,13 @@ html, body {
 /* ─── Settings rows ─── */
 .settings-row {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 0; border-bottom: 1px solid var(--border);
+  padding: 16px 12px; border-bottom: 1px solid var(--border);
   cursor: pointer; text-decoration: none; color: var(--text);
+  margin: 0 -12px; border-radius: var(--radius-md);
+  transition: all 0.2s ease;
 }
+.settings-row:hover { background: rgba(255, 255, 255, 0.04); }
+.settings-row:active { background: rgba(255, 255, 255, 0.08); transform: scale(0.99); }
 .settings-row__left { display: flex; align-items: center; gap: 12px; }
 .settings-row__icon { font-size: 20px; width: 28px; text-align: center; }
 .settings-row__label { font-size: 15px; font-weight: 500; }

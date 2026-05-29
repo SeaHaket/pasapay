@@ -232,7 +232,7 @@ export default function EditGroupPage({ params }: Props) {
               <label className="input-label">Name</label>
               <input
                 className="input-field"
-                placeholder="e.g. Mama, Ate Joy"
+                placeholder="e.g. Mama, Personal Savings"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 maxLength={30}
