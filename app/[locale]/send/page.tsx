@@ -77,53 +77,24 @@ export default function SendPage() {
       setSending(true);
       setSendError(null);
 
-      try {
-        const recipients: `0x${string}`[] = [];
-        const amounts: bigint[] = [];
+      saveTransaction({
+        timestamp: Date.now(),
+        hash: "fonbnk",
+        chain: "celo",
+        amount,
+        tokenSymbol: preferred.symbol,
+        route: "fonbnk",
+        recipientDisplay: `Fonbnk (${country.currencyCode})`,
+        recipientAddress: "",
+        countryId,
+        currencyCode: country.currencyCode,
+        currencySymbol: country.currencySymbol,
+        fiatEstimate: toLocalFiat(amountNum, country.currencySymbol),
+      });
 
-        // 1. App fee ($0.10) if re-enabled
-        if (PASAPAY_FEE_ADDRESS) {
-          setSendStep("Preparing batch payload…");
-          recipients.push(PASAPAY_FEE_ADDRESS);
-          amounts.push(parseUnits(FONBNK_APP_FEE, preferred.decimals));
-        }
-
-        // 2. User remittance amount
-        recipients.push(FONBNK_POOL_ADDRESS);
-        amounts.push(parseUnits(amountNum.toFixed(preferred.decimals), preferred.decimals));
-
-        // 3. Execute combined atomic batch transfer using useBatchSend hook
-        const hash = await sendBatch(
-          preferred.address as `0x${string}`,
-          recipients,
-          amounts,
-          preferred.feeCurrency as `0x${string}`,
-          (step) => setSendStep(step)
-        );
-
-        saveTransaction({
-          timestamp: Date.now(),
-          hash,
-          chain: "celo",
-          amount,
-          tokenSymbol: preferred.symbol,
-          route: "fonbnk",
-          recipientDisplay: `Fonbnk (${country.currencyCode})`,
-          recipientAddress: FONBNK_POOL_ADDRESS,
-          countryId,
-          currencyCode: country.currencyCode,
-          currencySymbol: country.currencySymbol,
-          fiatEstimate: toLocalFiat(amountNum, country.currencySymbol),
-        });
-
-        const { openFonbnk } = await import("@/lib/fonbnk");
-        openFonbnk(address, country.currencyCode);
-      } catch (err: any) {
-        setSendError(err?.message ?? "Transaction failed — please try again");
-      } finally {
-        setSending(false);
-        setSendStep("");
-      }
+      const { openFonbnk } = await import("@/lib/fonbnk");
+      openFonbnk(address, country.currencyCode);
+      setSending(false);
       return;
     }
 
@@ -326,17 +297,7 @@ export default function SendPage() {
               isLoading={route === "localcrypto" && bridgeStatus === "quoting"}
             />
 
-            {route === "fonbnk" && PASAPAY_FEE_ADDRESS && (
-              <div className="card" style={{ marginBottom: 16, padding: "12px 16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>App fee</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>$0.10 {preferred?.symbol}</p>
-                </div>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "4px 0 0" }}>
-                  Charged before opening Fonbnk
-                </p>
-              </div>
-            )}
+
 
             {sendError && (
               <div className="card" style={{ borderColor: "var(--error)", marginTop: 12 }}>

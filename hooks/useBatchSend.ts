@@ -51,6 +51,23 @@ export function useBatchSend() {
         throw new Error(errMsg);
       }
 
+      const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+      if (!PASAPAY_BATCH_ROUTER_ADDRESS || PASAPAY_BATCH_ROUTER_ADDRESS === ZERO_ADDRESS) {
+        const errMsg = "Batch Router address is not configured. Please define NEXT_PUBLIC_PASAPAY_BATCH_ROUTER_ADDRESS in .env.local";
+        setError(errMsg);
+        setStatus("error");
+        throw new Error(errMsg);
+      }
+
+      for (const rec of recipients) {
+        if (!rec || rec === ZERO_ADDRESS) {
+          const errMsg = "Configuration error: Fonbnk Pool Address is not defined in .env.local";
+          setError(errMsg);
+          setStatus("error");
+          throw new Error(errMsg);
+        }
+      }
+
       setStatus("checking");
       setError(null);
 

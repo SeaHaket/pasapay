@@ -228,59 +228,25 @@ export default function AllocatorSendPage({ params }: Props) {
     updateRow(row.recipient.id, { status: "sending" });
 
     const country = getCountryConfig(row.recipient.countryId);
-    const amountNum = parseFloat(row.amount);
-    if (!Number.isFinite(amountNum) || amountNum <= 0) {
-      updateRow(row.recipient.id, { status: "error", error: "Invalid amount" });
-      return;
-    }
 
-    try {
-      const recipients: `0x${string}`[] = [];
-      const amounts: bigint[] = [];
+    saveTransaction({
+      timestamp: Date.now(),
+      hash: "fonbnk",
+      chain: "celo",
+      amount: row.amount,
+      tokenSymbol: preferred.symbol,
+      route: "fonbnk",
+      recipientDisplay: `Fonbnk (${country.currencyCode})`,
+      recipientAddress: "",
+      countryId: row.recipient.countryId,
+      currencyCode: country.currencyCode,
+      currencySymbol: country.currencySymbol,
+      fiatEstimate: "",
+    });
 
-      // 1. App fee ($0.10) if re-enabled
-      if (PASAPAY_FEE_ADDRESS) {
-        recipients.push(PASAPAY_FEE_ADDRESS);
-        amounts.push(parseUnits(FONBNK_APP_FEE, preferred.decimals));
-      }
-
-      // 2. User remittance amount
-      recipients.push(FONBNK_POOL_ADDRESS);
-      amounts.push(parseUnits(amountNum.toFixed(preferred.decimals), preferred.decimals));
-
-      // 3. Execute combined batch send using the useBatchSend hook
-      setCurrentStep("Sending atomic transaction…");
-      const hash = await sendBatch(
-        preferred.address as `0x${string}`,
-        recipients,
-        amounts,
-        preferred.feeCurrency as `0x${string}`,
-        (step) => setCurrentStep(step)
-      );
-
-      saveTransaction({
-        timestamp: Date.now(),
-        hash,
-        chain: "celo",
-        amount: row.amount,
-        tokenSymbol: preferred.symbol,
-        route: "fonbnk",
-        recipientDisplay: `Fonbnk (${country.currencyCode})`,
-        recipientAddress: FONBNK_POOL_ADDRESS,
-        countryId: row.recipient.countryId,
-        currencyCode: country.currencyCode,
-        currencySymbol: country.currencySymbol,
-        fiatEstimate: "",
-      });
-
-      updateRow(row.recipient.id, { status: "manual" });
-      const { openFonbnk } = await import("@/lib/fonbnk");
-      openFonbnk(address, country.currencyCode);
-    } catch (err: any) {
-      updateRow(row.recipient.id, { status: "error", error: err?.message ?? "Transaction failed" });
-    } finally {
-      setCurrentStep("");
-    }
+    updateRow(row.recipient.id, { status: "manual" });
+    const { openFonbnk } = await import("@/lib/fonbnk");
+    openFonbnk(address, country.currencyCode);
   }
 
   function handleExternalSend(row: RecipientState) {

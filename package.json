@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:contracts": "hardhat test"
+    "test:contracts": "hardhat test",
+    "deploy:contracts": "hardhat run scripts/deploy.ts"
   },
   "dependencies": {
     "@celo/abis": "^14.0.1",
