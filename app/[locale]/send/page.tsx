@@ -7,11 +7,12 @@ import { ChevronLeft } from "lucide-react";
 import { useMiniPay } from "@/hooks/useMiniPay";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { useLifi } from "@/hooks/useLifi";
+import { useBatchSend } from "@/hooks/useBatchSend";
 import Numpad from "@/components/Numpad";
 import RouteSelector, { type SendRoute } from "@/components/RouteSelector";
 import RecipientInput from "@/components/RecipientInput";
 import FeeBreakdown from "@/components/FeeBreakdown";
-import { MINIPAY_DEPOSIT_DEEPLINK, PASAPAY_FEE_ADDRESS, FONBNK_APP_FEE, CELO_RPC } from "@/lib/constants";
+import { MINIPAY_DEPOSIT_DEEPLINK, PASAPAY_FEE_ADDRESS, FONBNK_APP_FEE, FONBNK_POOL_ADDRESS, CELO_RPC } from "@/lib/constants";
 import { COUNTRIES, getCountryConfig, type OfframpProvider } from "@/config/countries";
 import { executeBridge } from "@/lib/lifi";
 import { saveTransaction } from "@/lib/history";
@@ -20,6 +21,7 @@ export default function SendPage() {
   const t = useTranslations("send");
   const router = useRouter();
   const { address, preferred, totalUsd, sendTransaction, refreshBalances } = useMiniPay();
+  const { sendBatch } = useBatchSend();
   
   const [countryId, setCountryId] = useState("PH");
   const country = getCountryConfig(countryId);
@@ -75,54 +77,53 @@ export default function SendPage() {
       setSending(true);
       setSendError(null);
 
-      // Collect $0.10 app fee if treasury address is configured
-      if (PASAPAY_FEE_ADDRESS) {
-        try {
-          setSendStep("Collecting app fee...");
-          const { createPublicClient, http: httpTransport } = await import("viem");
-          const { celo: celoChain } = await import("viem/chains");
-          const publicClient = createPublicClient({ chain: celoChain, transport: httpTransport(CELO_RPC) });
+      try {
+        const recipients: `0x${string}`[] = [];
+        const amounts: bigint[] = [];
 
-          const feeRaw = parseUnits(FONBNK_APP_FEE, preferred.decimals);
-          const feeData = encodeFunctionData({
-            abi: erc20Abi,
-            functionName: "transfer",
-            args: [PASAPAY_FEE_ADDRESS, feeRaw],
-          });
-          const feeHash = await sendTransaction({
-            to: preferred.address as `0x${string}`,
-            data: feeData,
-            feeCurrency: preferred.feeCurrency as `0x${string}`,
-          });
-          // Wait for on-chain confirmation before redirecting so the fee
-          // is definitely settled and not lost in a page navigation race.
-          await publicClient.waitForTransactionReceipt({ hash: feeHash as `0x${string}`, timeout: 60_000 });
-        } catch (err: any) {
-          setSendError(err?.message ?? "Fee payment failed — please try again");
-          setSending(false);
-          setSendStep("");
-          return;
+        // 1. App fee ($0.10) if re-enabled
+        if (PASAPAY_FEE_ADDRESS) {
+          setSendStep("Preparing batch payload…");
+          recipients.push(PASAPAY_FEE_ADDRESS);
+          amounts.push(parseUnits(FONBNK_APP_FEE, preferred.decimals));
         }
+
+        // 2. User remittance amount
+        recipients.push(FONBNK_POOL_ADDRESS);
+        amounts.push(parseUnits(amountNum.toFixed(preferred.decimals), preferred.decimals));
+
+        // 3. Execute combined atomic batch transfer using useBatchSend hook
+        const hash = await sendBatch(
+          preferred.address as `0x${string}`,
+          recipients,
+          amounts,
+          preferred.feeCurrency as `0x${string}`,
+          (step) => setSendStep(step)
+        );
+
+        saveTransaction({
+          timestamp: Date.now(),
+          hash,
+          chain: "celo",
+          amount,
+          tokenSymbol: preferred.symbol,
+          route: "fonbnk",
+          recipientDisplay: `Fonbnk (${country.currencyCode})`,
+          recipientAddress: FONBNK_POOL_ADDRESS,
+          countryId,
+          currencyCode: country.currencyCode,
+          currencySymbol: country.currencySymbol,
+          fiatEstimate: toLocalFiat(amountNum, country.currencySymbol),
+        });
+
+        const { openFonbnk } = await import("@/lib/fonbnk");
+        openFonbnk(address, country.currencyCode);
+      } catch (err: any) {
+        setSendError(err?.message ?? "Transaction failed — please try again");
+      } finally {
+        setSending(false);
+        setSendStep("");
       }
-
-      saveTransaction({
-        timestamp: Date.now(),
-        hash: "fonbnk",
-        chain: "celo",
-        amount,
-        tokenSymbol: preferred.symbol,
-        route: "fonbnk",
-        recipientDisplay: `Fonbnk (${country.currencyCode})`,
-        recipientAddress: "",
-        countryId,
-        currencyCode: country.currencyCode,
-        currencySymbol: country.currencySymbol,
-        fiatEstimate: toLocalFiat(amountNum, country.currencySymbol),
-      });
-
-      const { openFonbnk } = await import("@/lib/fonbnk");
-      openFonbnk(address, country.currencyCode);
-      setSending(false);
       return;
     }
 

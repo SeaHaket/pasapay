@@ -8,7 +8,7 @@ import { useMiniPay } from "@/hooks/useMiniPay";
 import { useBatchSend } from "@/hooks/useBatchSend";
 import { getCountryConfig } from "@/config/countries";
 import { saveTransaction } from "@/lib/history";
-import { PASAPAY_FEE_ADDRESS, FONBNK_APP_FEE, CELO_RPC } from "@/lib/constants";
+import { PASAPAY_FEE_ADDRESS, FONBNK_APP_FEE, FONBNK_POOL_ADDRESS, CELO_RPC } from "@/lib/constants";
 
 type SendStatus = "idle" | "sending" | "done" | "error";
 
@@ -228,49 +228,59 @@ export default function AllocatorSendPage({ params }: Props) {
     updateRow(row.recipient.id, { status: "sending" });
 
     const country = getCountryConfig(row.recipient.countryId);
-
-    if (PASAPAY_FEE_ADDRESS) {
-      try {
-        const { createPublicClient, http: httpTransport } = await import("viem");
-        const { celo: celoChain } = await import("viem/chains");
-        const publicClient = createPublicClient({ chain: celoChain, transport: httpTransport(CELO_RPC) });
-
-        const feeRaw = parseUnits(FONBNK_APP_FEE, preferred.decimals);
-        const feeData = encodeFunctionData({
-          abi: erc20Abi,
-          functionName: "transfer",
-          args: [PASAPAY_FEE_ADDRESS, feeRaw],
-        });
-        const feeHash = await sendTransaction({
-          to: preferred.address as `0x${string}`,
-          data: feeData,
-          feeCurrency: preferred.feeCurrency as `0x${string}`,
-        });
-        await publicClient.waitForTransactionReceipt({ hash: feeHash as `0x${string}`, timeout: 60_000 });
-      } catch (err: any) {
-        updateRow(row.recipient.id, { status: "error", error: err?.message ?? "Fee payment failed" });
-        return;
-      }
+    const amountNum = parseFloat(row.amount);
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      updateRow(row.recipient.id, { status: "error", error: "Invalid amount" });
+      return;
     }
 
-    saveTransaction({
-      timestamp: Date.now(),
-      hash: "fonbnk",
-      chain: "celo",
-      amount: row.amount,
-      tokenSymbol: preferred.symbol,
-      route: "fonbnk",
-      recipientDisplay: `Fonbnk (${country.currencyCode})`,
-      recipientAddress: "",
-      countryId: row.recipient.countryId,
-      currencyCode: country.currencyCode,
-      currencySymbol: country.currencySymbol,
-      fiatEstimate: "",
-    });
+    try {
+      const recipients: `0x${string}`[] = [];
+      const amounts: bigint[] = [];
 
-    updateRow(row.recipient.id, { status: "manual" });
-    const { openFonbnk } = await import("@/lib/fonbnk");
-    openFonbnk(address, country.currencyCode);
+      // 1. App fee ($0.10) if re-enabled
+      if (PASAPAY_FEE_ADDRESS) {
+        recipients.push(PASAPAY_FEE_ADDRESS);
+        amounts.push(parseUnits(FONBNK_APP_FEE, preferred.decimals));
+      }
+
+      // 2. User remittance amount
+      recipients.push(FONBNK_POOL_ADDRESS);
+      amounts.push(parseUnits(amountNum.toFixed(preferred.decimals), preferred.decimals));
+
+      // 3. Execute combined batch send using the useBatchSend hook
+      setCurrentStep("Sending atomic transaction…");
+      const hash = await sendBatch(
+        preferred.address as `0x${string}`,
+        recipients,
+        amounts,
+        preferred.feeCurrency as `0x${string}`,
+        (step) => setCurrentStep(step)
+      );
+
+      saveTransaction({
+        timestamp: Date.now(),
+        hash,
+        chain: "celo",
+        amount: row.amount,
+        tokenSymbol: preferred.symbol,
+        route: "fonbnk",
+        recipientDisplay: `Fonbnk (${country.currencyCode})`,
+        recipientAddress: FONBNK_POOL_ADDRESS,
+        countryId: row.recipient.countryId,
+        currencyCode: country.currencyCode,
+        currencySymbol: country.currencySymbol,
+        fiatEstimate: "",
+      });
+
+      updateRow(row.recipient.id, { status: "manual" });
+      const { openFonbnk } = await import("@/lib/fonbnk");
+      openFonbnk(address, country.currencyCode);
+    } catch (err: any) {
+      updateRow(row.recipient.id, { status: "error", error: err?.message ?? "Transaction failed" });
+    } finally {
+      setCurrentStep("");
+    }
   }
 
   function handleExternalSend(row: RecipientState) {

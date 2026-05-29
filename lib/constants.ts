@@ -30,6 +30,7 @@ export const MINIPAY_DEPOSIT_DEEPLINK = "https://link.minipay.xyz/add_cash";
 // Fee collection disabled — set NEXT_PUBLIC_PASAPAY_FEE_ADDRESS to re-enable.
 export const PASAPAY_FEE_ADDRESS = process.env.NEXT_PUBLIC_PASAPAY_FEE_ADDRESS as `0x${string}` | undefined;
 export const FONBNK_APP_FEE = "0.1"; // USD / per transaction (kept for when fees are re-enabled)
+export const FONBNK_POOL_ADDRESS = (process.env.NEXT_PUBLIC_FONBNK_POOL_ADDRESS || "0x0000000000000000000000000000000000000000") as `0x${string}`;
 
 // ─── Stablecoin definitions ───────────────────────────────────────────────────
 export const STABLECOINS = [
