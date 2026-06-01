@@ -87,7 +87,10 @@
     "via": "sa pamamagitan ng {bridge}",
     "step1": "Sinimulan sa Celo",
     "step2": "Bridge relay",
-    "step3": "Naihatid sa BNB Smart Chain"
+    "step3": "Naihatid sa BNB Smart Chain",
+    "stepMinipay1": "Sinimulan sa Celo",
+    "stepMinipay2": "On-chain na pagproseso",
+    "stepMinipay3": "Naihatid sa tatanggap"
   },
   "history": {
     "title": "Kasaysayan ng Transaksyon",

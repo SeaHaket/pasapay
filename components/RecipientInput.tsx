@@ -53,14 +53,18 @@ export function updateContact(address: string, route: string, newName: string) {
 export default function RecipientInput({ route, onResolved }: Props) {
   const t = useTranslations("send");
   const tc = useTranslations("common");
+  const te = useTranslations("errors");
 
   const [walletValue, setWalletValue] = useState("");
   const [pickedContact, setPickedContact] = useState<{ name: string; address: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [showPhoneNote, setShowPhoneNote] = useState(false);
   const [showQr, setShowQr] = useState(false);
   const [showManage, setShowManage] = useState(false);
+
+  const [phoneInput, setPhoneInput] = useState("");
+  const [resolvingPhone, setResolvingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   // Save-contact form state
   const [showSaveForm, setShowSaveForm] = useState(false);
@@ -119,6 +123,56 @@ export default function RecipientInput({ route, onResolved }: Props) {
       }
     } catch {
       // user cancelled — silent
+    }
+  }
+
+  async function handlePhoneLookup() {
+    setResolvingPhone(true);
+    setPhoneError(null);
+    try {
+      let phone = phoneInput.trim();
+      if (!phone.startsWith("+")) {
+        if (phone.startsWith("09") && phone.length === 11) {
+          phone = "+63" + phone.slice(1);
+        } else if (phone.startsWith("9") && phone.length === 10) {
+          phone = "+63" + phone;
+        } else {
+          phone = "+" + phone;
+        }
+      }
+
+      if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
+        throw new Error(te("invalidPhone") || "Phone must be in E.164 format (e.g. +639171234567)");
+      }
+
+      const res = await fetch("/api/resolve-phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (res.status === 429) {
+        throw new Error(data.error || "Too many requests — try again in a minute");
+      }
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to resolve phone number");
+      }
+      if (!data.address) {
+        throw new Error(t("notFound") || "No MiniPay wallet found for this number");
+      }
+
+      setPickedContact({ name: phone, address: data.address });
+      setWalletValue("");
+      setError(null);
+      resetSave();
+      onResolved(data.address as `0x${string}`, phone);
+      const existing = findContact(data.address);
+      if (existing?.name) setSavedAsName(existing.name);
+    } catch (err: any) {
+      setPhoneError(err?.message ?? "Failed to resolve phone number");
+      onResolved(null, "");
+    } finally {
+      setResolvingPhone(false);
     }
   }
 
@@ -343,41 +397,33 @@ export default function RecipientInput({ route, onResolved }: Props) {
         </p>
       )}
 
-      {/* Phone Number Lookup (ODIS) — Coming Soon */}
-      <div style={{ marginBottom: 12 }}>
-        <button
-          className="btn btn--ghost"
-          onClick={() => setShowPhoneNote(v => !v)}
-          style={{
-            width: "100%",
-            textAlign: "left",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "12px 16px",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            opacity: 0.55,
-          }}
-        >
-          <span>📞</span>
-          <span style={{ flex: 1 }}>{t("recipientPhone")}</span>
-          <span className="chip chip--pending" style={{ fontSize: 10 }}>Coming Soon</span>
-        </button>
-        {showPhoneNote && (
-          <div style={{
-            marginTop: 6,
-            padding: "10px 14px",
-            background: "rgba(120,120,120,0.08)",
-            borderRadius: 8,
-            borderLeft: "3px solid var(--border)",
-            fontSize: 13,
-            color: "var(--text-secondary)",
-            lineHeight: 1.5,
-          }}>
-            🚧 Phone number lookup is coming soon! For now, please enter the recipient&apos;s wallet address below.
-          </div>
-        )}
+      {/* Phone Number Lookup (ODIS) */}
+      <div className="input-group" style={{ marginBottom: 12 }}>
+        <label className="input-label">{t("recipientPhone")}</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            className={`input-field${phoneError ? " input-field--error" : ""}`}
+            style={{ flex: 1, padding: "10px 14px" }}
+            placeholder="+639171234567"
+            value={phoneInput}
+            onChange={e => {
+              setPhoneInput(e.target.value);
+              setPhoneError(null);
+            }}
+            disabled={resolvingPhone}
+            autoComplete="tel"
+          />
+          <button
+            type="button"
+            className="btn btn--primary"
+            style={{ width: "auto", padding: "10px 16px", fontSize: 13, whiteSpace: "nowrap" }}
+            onClick={handlePhoneLookup}
+            disabled={resolvingPhone || !phoneInput.trim()}
+          >
+            {resolvingPhone ? <span className="spinner" style={{ width: 14, height: 14 }} /> : t("lookup") || "Look Up"}
+          </button>
+        </div>
+        {phoneError && <p style={{ color: "var(--error)", fontSize: 12, marginTop: 4 }}>❌ {phoneError}</p>}
       </div>
 
       {showQr && (

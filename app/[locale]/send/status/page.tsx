@@ -34,7 +34,7 @@ export default function StatusPage() {
   return (
     <>
       <main className="page page-padded" style={{ paddingBottom: 120 }}>
-        <StatusTracker status="success" txHash={tx.hash} />
+        <StatusTracker status="success" txHash={tx.hash} route={tx.route} />
 
         <div style={{ marginTop: 24 }}>
           <BlockchainReceipt txHash={tx.hash} chain={tx.chain} />

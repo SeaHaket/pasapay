@@ -87,7 +87,10 @@
     "via": "via {bridge}",
     "step1": "Initiated on Celo",
     "step2": "Bridge relay",
-    "step3": "Delivered on BNB Smart Chain"
+    "step3": "Delivered on BNB Smart Chain",
+    "stepMinipay1": "Initiated on Celo",
+    "stepMinipay2": "On-chain processing",
+    "stepMinipay3": "Delivered to recipient"
   },
   "history": {
     "title": "Transaction History",
