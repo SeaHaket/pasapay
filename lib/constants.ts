@@ -24,7 +24,7 @@ export const BSC_CHAIN_ID = 56;
 export const CELO_RPC = "https://forno.celo.org";
 
 // ─── MiniPay deeplinks ────────────────────────────────────────────────────────
-export const MINIPAY_DEPOSIT_DEEPLINK = "https://link.minipay.xyz/add_cash";
+export const MINIPAY_DEPOSIT_DEEPLINK = "https://minipay.opera.com/add_cash";
 
 // ─── PasaPay app fee (Fonbnk) ─────────────────────────────────────────────────
 // Fee collection disabled — set NEXT_PUBLIC_PASAPAY_FEE_ADDRESS to re-enable.
