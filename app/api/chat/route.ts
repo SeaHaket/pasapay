@@ -133,13 +133,26 @@ export async function POST(req: NextRequest) {
       ]
     });
 
+    // Filter out error messages to keep history clean and avoid confusing the LLM
+    const cleanMessages = messages.filter(
+      (m: any) => 
+        m.content && 
+        !m.content.includes("Sorry, I encountered an error") && 
+        !m.content.includes("Transaction failed")
+    );
+
+    // Gemini requires chat history to strictly start with a 'user' message.
+    // Skip any welcome/greeting assistant messages at the start of the history.
+    const userStartIndex = cleanMessages.findIndex((m: any) => m.role === "user");
+    const chatMessages = userStartIndex !== -1 ? cleanMessages.slice(userStartIndex) : cleanMessages;
+
     // Setup chat with history
-    const history = messages.slice(0, -1).map((m: any) => ({
+    const history = chatMessages.slice(0, -1).map((m: any) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }]
     }));
 
-    const lastMessage = messages[messages.length - 1].content;
+    const lastMessage = chatMessages[chatMessages.length - 1].content;
     const chat = model.startChat({ history });
 
     let responseResult = await chat.sendMessage(lastMessage);
