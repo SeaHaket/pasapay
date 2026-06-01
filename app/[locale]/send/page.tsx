@@ -134,7 +134,7 @@ export default function SendPage() {
         hash = result.txHash;
       } else {
         const amountRaw = parseUnits(amount, selectedToken.decimals);
-        let data: `0x${string}` | undefined = undefined;
+        let data: `0x${string}` = "0x";
         let toAddress: `0x${string}`;
         let valueParam: bigint | undefined = undefined;
 

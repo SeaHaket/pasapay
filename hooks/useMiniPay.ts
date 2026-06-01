@@ -78,7 +78,7 @@ export function useMiniPay(): MiniPayState {
   // Calculate total USD across all tokens, multiplying balance by priceUsd
   const totalUsd = balances.reduce((sum, b) => sum + b.human * b.priceUsd, 0);
 
-  const sendTransaction = useCallback(async ({ to, data, value, feeCurrency }: SendTxParams): Promise<string> => {
+  const sendTransaction = useCallback(async ({ to, data = "0x", value, feeCurrency }: SendTxParams): Promise<string> => {
     if (!address) throw new Error("Wallet not connected");
     const client = createWalletClient({ chain: celo, transport: custom(window.ethereum!) });
 
@@ -86,11 +86,8 @@ export function useMiniPay(): MiniPayState {
     const txParams: any = {
       account: address,
       to,
+      data,
     };
-
-    if (data && data !== "0x") {
-      txParams.data = data;
-    }
 
     if (value !== undefined) {
       txParams.value = value;
