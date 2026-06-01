@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Home, Send, Clock, Smartphone, Gift, Users, PiggyBank } from "lucide-react";
+import { Home, Send, Clock, Smartphone, Gift, Users, PiggyBank, Sparkles } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useMiniPay } from "@/hooks/useMiniPay";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
@@ -131,6 +131,10 @@ export default function HomePage() {
         <Link href="/send" className="bottom-nav__item">
           <span className="bottom-nav__icon"><Send size={22} /></span>
           <span>{t("send")}</span>
+        </Link>
+        <Link href="/chat" className="bottom-nav__item">
+          <span className="bottom-nav__icon"><Sparkles size={22} /></span>
+          <span>Co-pilot</span>
         </Link>
         <Link href="/vault" className="bottom-nav__item">
           <span className="bottom-nav__icon"><PiggyBank size={22} /></span>

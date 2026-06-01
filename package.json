@@ -14,6 +14,7 @@
     "@celo/abis": "^14.0.1",
     "@celo/contractkit": "^10.0.3",
     "@celo/identity": "^5.1.2",
+    "@google/generative-ai": "^0.24.1",
     "@lifi/sdk": "^3.16.3",
     "lucide-react": "^1.14.0",
     "next": "16.2.4",

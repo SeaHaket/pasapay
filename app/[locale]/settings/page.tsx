@@ -1,7 +1,7 @@
 "use client";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { Home, Send, Clock, PiggyBank, MessageCircle, FileText, Shield } from "lucide-react";
+import { Home, Send, Clock, PiggyBank, MessageCircle, FileText, Shield, Sparkles } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 
 const APP_VERSION = "0.1.0";
@@ -58,6 +58,7 @@ export default function SettingsPage() {
       <nav className="bottom-nav">
         <Link href="/" className="bottom-nav__item"><span className="bottom-nav__icon"><Home size={22} /></span><span>Home</span></Link>
         <Link href="/send" className="bottom-nav__item"><span className="bottom-nav__icon"><Send size={22} /></span><span>Send</span></Link>
+        <Link href="/chat" className="bottom-nav__item"><span className="bottom-nav__icon"><Sparkles size={22} /></span><span>Co-pilot</span></Link>
         <Link href="/vault" className="bottom-nav__item"><span className="bottom-nav__icon"><PiggyBank size={22} /></span><span>Vault</span></Link>
         <Link href="/history" className="bottom-nav__item"><span className="bottom-nav__icon"><Clock size={22} /></span><span>History</span></Link>
       </nav>

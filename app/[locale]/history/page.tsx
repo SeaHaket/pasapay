@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { Home, Send, Clock, PiggyBank, Inbox, ChevronDown, ChevronUp, ExternalLink, Copy, Check } from "lucide-react";
+import { Home, Send, Clock, PiggyBank, Inbox, ChevronDown, ChevronUp, ExternalLink, Copy, Check, Sparkles } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { loadHistory, type HistoryEntry } from "@/lib/history";
 import { celoscanTx, bscscanTx } from "@/lib/celoscan";
@@ -181,6 +181,7 @@ export default function HistoryPage() {
       <nav className="bottom-nav">
         <Link href="/" className="bottom-nav__item"><span className="bottom-nav__icon"><Home size={22} /></span><span>Home</span></Link>
         <Link href="/send" className="bottom-nav__item"><span className="bottom-nav__icon"><Send size={22} /></span><span>Send</span></Link>
+        <Link href="/chat" className="bottom-nav__item"><span className="bottom-nav__icon"><Sparkles size={22} /></span><span>Co-pilot</span></Link>
         <Link href="/vault" className="bottom-nav__item"><span className="bottom-nav__icon"><PiggyBank size={22} /></span><span>Vault</span></Link>
         <Link href="/history" className="bottom-nav__item bottom-nav__item--active"><span className="bottom-nav__icon"><Clock size={22} /></span><span>History</span></Link>
       </nav>
