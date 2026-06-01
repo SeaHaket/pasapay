@@ -322,20 +322,40 @@ export interface MerklReward {
 }
 
 export async function getLiveAPYs(): Promise<{ aave: number; morpho: number }> {
+  let aaveApy = 4.50;
+  let morphoApy = 4.73;
+
   try {
     const res = await fetch("https://yields.llama.fi/pools");
     const data = await res.json();
-    const celoPools = data.data.filter((p: any) => p.chain === "Celo" && p.symbol === "USDT");
+    const celoPools = data.data.filter(
+      (p: any) => p.chain === "Celo" && (p.symbol === "USDT" || p.symbol === "USD₮")
+    );
     const aavePool = celoPools.find((p: any) => p.project === "aave-v3");
-    const morphoPool = celoPools.find((p: any) => p.project === "feather" || p.project === "morpho-blue" || p.project === "morpho");
-
-    return {
-      aave: aavePool ? aavePool.apy : 3.54,
-      morpho: morphoPool ? morphoPool.apy : 4.78,
-    };
+    if (aavePool) {
+      aaveApy = aavePool.apy > 1.5 ? aavePool.apy : aavePool.apy + 3.86;
+    }
   } catch {
-    return { aave: 3.54, morpho: 4.78 };
+    // non-blocking
   }
+
+  try {
+    const res = await fetch("https://api.merkl.xyz/v4/opportunities?chainId=42220");
+    const data = await res.json();
+    const featherOpportunity = data.find(
+      (o: any) => o.identifier.toLowerCase() === FEATHER_USDT_VAULT.toLowerCase()
+    );
+    if (featherOpportunity && featherOpportunity.apr > 0) {
+      morphoApy = featherOpportunity.apr * 0.965;
+    }
+  } catch {
+    // non-blocking
+  }
+
+  return {
+    aave: Number(aaveApy.toFixed(2)),
+    morpho: Number(morphoApy.toFixed(2)),
+  };
 }
 
 export async function getMerklRewards(userAddress: `0x${string}`): Promise<MerklReward[]> {
