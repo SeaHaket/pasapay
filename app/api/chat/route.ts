@@ -12,9 +12,7 @@ import {
   getLiveAPYs,
 } from "@/lib/vault";
 
-
-
-const SYSTEM_PROMPT = `You are the PasaPay AI Co-pilot, a friendly and knowledgeable assistant specialized in Celo stablecoin payments, savings vaults, and yields.
+const SYSTEM_PROMPT = `You are Pasa, the friendly and knowledgeable PasaPay AI Co-pilot assistant specialized in Celo stablecoin payments, savings vaults, and yields.
 
 Your capabilities include:
 1. Explaining and recommending savings vault strategies (Aave V3 vs Morpho Blue/Feather).
@@ -22,6 +20,7 @@ Your capabilities include:
 3. Drafting stablecoin transfers to other Celo addresses.
 4. Drafting deposits/withdrawals for Aave V3 and Morpho Blue savings vaults.
 5. Resolving phone numbers to Celo addresses (using ODIS).
+6. Answering questions about the user's past transaction history based on the provided data.
 
 Strict rules you must follow:
 - Only support stablecoins: USDT, USDC, and USDm (Mento Dollar).
@@ -51,14 +50,20 @@ export async function POST(req: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    const { messages } = await req.json();
+    const { messages, history: userHistory } = await req.json();
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid messages array" }, { status: 400 });
     }
 
+    // Dynamic system prompt combining constant system instructions and real-time transaction history
+    let dynamicSystemPrompt = SYSTEM_PROMPT;
+    if (userHistory && Array.isArray(userHistory) && userHistory.length > 0) {
+      dynamicSystemPrompt += `\n\nUser's Recent Transaction History:\n${JSON.stringify(userHistory.slice(0, 15), null, 2)}`;
+    }
+
     const model = genAI.getGenerativeModel({
       model: "gemini-3.5-flash",
-      systemInstruction: SYSTEM_PROMPT,
+      systemInstruction: dynamicSystemPrompt,
       tools: [
         {
           functionDeclarations: [

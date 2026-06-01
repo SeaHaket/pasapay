@@ -32,6 +32,8 @@ export const viewport: Viewport = {
   themeColor: "#0D1B2A",
 };
 
+import PasaCopilotWidget from "@/components/PasaCopilotWidget";
+
 type Props = { children: React.ReactNode; params: Promise<{ locale: string }> };
 
 export default async function LocaleLayout({ children, params }: Props) {
@@ -44,6 +46,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         <NextIntlClientProvider locale={locale} messages={messages}>
           <div className="app-shell">
             {children}
+            <PasaCopilotWidget />
           </div>
         </NextIntlClientProvider>
       </body>
