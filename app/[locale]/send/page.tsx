@@ -1,27 +1,34 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import { useRouter, Link } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { parseUnits, encodeFunctionData, erc20Abi } from "viem";
 import { ChevronLeft } from "lucide-react";
 import { useMiniPay } from "@/hooks/useMiniPay";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { useLifi } from "@/hooks/useLifi";
-import { useBatchSend } from "@/hooks/useBatchSend";
 import Numpad from "@/components/Numpad";
 import RouteSelector, { type SendRoute } from "@/components/RouteSelector";
 import RecipientInput from "@/components/RecipientInput";
 import FeeBreakdown from "@/components/FeeBreakdown";
-import { MINIPAY_DEPOSIT_DEEPLINK, PASAPAY_FEE_ADDRESS, FONBNK_APP_FEE, FONBNK_POOL_ADDRESS, CELO_RPC } from "@/lib/constants";
+import { MINIPAY_DEPOSIT_DEEPLINK } from "@/lib/constants";
 import { COUNTRIES, getCountryConfig, type OfframpProvider } from "@/config/countries";
 import { executeBridge } from "@/lib/lifi";
 import { saveTransaction } from "@/lib/history";
+import type { StablecoinBalance } from "@/lib/stablecoins";
+
+const TOKEN_COLORS: Record<string, string> = {
+  USDT: "var(--usdt-green)",
+  USDC: "var(--usdc-blue)",
+  USDm: "var(--usdm-yellow)",
+  CELO: "#FBCC5C",
+};
 
 export default function SendPage() {
   const t = useTranslations("send");
   const router = useRouter();
-  const { address, preferred, totalUsd, sendTransaction, refreshBalances } = useMiniPay();
-  const { sendBatch } = useBatchSend();
+  const { address, preferred, totalUsd, sendTransaction, refreshBalances, balances } = useMiniPay();
   
   const [countryId, setCountryId] = useState("PH");
   const country = getCountryConfig(countryId);
@@ -39,19 +46,28 @@ export default function SendPage() {
   const [sendStep, setSendStep] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
 
+  const [selectedToken, setSelectedToken] = useState<StablecoinBalance | null>(null);
+  const [openTokenSelector, setOpenTokenSelector] = useState(false);
+
+  // Sync selectedToken with preferred initially
+  useEffect(() => {
+    if (preferred && !selectedToken) {
+      setSelectedToken(preferred);
+    }
+  }, [preferred, selectedToken]);
+
   // Pre-fill from Quick Send tap
   useEffect(() => {
     const raw = sessionStorage.getItem("pp_quicksend");
     if (!raw) return;
     sessionStorage.removeItem("pp_quicksend");
-      try {
-        const qs = JSON.parse(raw);
-        const VALID_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-        const VALID_ROUTES: SendRoute[] = ["minipay", "localcrypto", "transak", "fonbnk"];
-        const VALID_COUNTRIES = /^[A-Z]{2}$/;
-        // Reject the payload if the address is present but malformed
-        if (qs.recipientAddress && !VALID_ADDRESS.test(qs.recipientAddress)) return;
-        if (qs.recipientAddress) setRecipientAddress(qs.recipientAddress as `0x${string}`);
+    try {
+      const qs = JSON.parse(raw);
+      const VALID_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+      const VALID_ROUTES: SendRoute[] = ["minipay", "localcrypto", "transak", "fonbnk"];
+      const VALID_COUNTRIES = /^[A-Z]{2}$/;
+      if (qs.recipientAddress && !VALID_ADDRESS.test(qs.recipientAddress)) return;
+      if (qs.recipientAddress) setRecipientAddress(qs.recipientAddress as `0x${string}`);
       if (qs.recipientDisplay && typeof qs.recipientDisplay === "string")
         setRecipientDisplay(qs.recipientDisplay.slice(0, 100));
       if (qs.countryId && VALID_COUNTRIES.test(qs.countryId)) setCountryId(qs.countryId);
@@ -61,19 +77,19 @@ export default function SendPage() {
   }, []);
 
   const amountNum = parseFloat(amount) || 0;
-  const hasBalance = amountNum > 0 && amountNum <= (preferred?.human ?? 0);
+  const hasBalance = amountNum > 0 && amountNum <= (selectedToken?.human ?? 0);
 
   // Auto-fetch bridge quote when on review step for localcrypto
   useEffect(() => {
-    if (step === "review" && route === "localcrypto" && address && recipientAddress && preferred && amountNum > 0 && rate) {
-      const raw = parseUnits(amount, preferred.decimals);
-      fetchQuote({ fromAddress: address, toAddress: recipientAddress, token: preferred, amountRaw: raw, exchangeRate: rate ?? 0 });
+    if (step === "review" && route === "localcrypto" && address && recipientAddress && selectedToken && amountNum > 0 && rate) {
+      const raw = parseUnits(amount, selectedToken.decimals);
+      fetchQuote({ fromAddress: address, toAddress: recipientAddress, token: selectedToken, amountRaw: raw, exchangeRate: rate ?? 0 });
     }
-  }, [step, route]);
+  }, [step, route, selectedToken, amountNum, address, recipientAddress, rate, fetchQuote]);
 
   async function handleConfirm() {
     if (route === "fonbnk") {
-      if (!address || !preferred) return;
+      if (!address || !selectedToken) return;
       setSending(true);
       setSendError(null);
 
@@ -82,7 +98,7 @@ export default function SendPage() {
         hash: "fonbnk",
         chain: "celo",
         amount,
-        tokenSymbol: preferred.symbol,
+        tokenSymbol: selectedToken.symbol,
         route: "fonbnk",
         recipientDisplay: `Fonbnk (${country.currencyCode})`,
         recipientAddress: "",
@@ -98,7 +114,7 @@ export default function SendPage() {
       return;
     }
 
-    if (!address || !preferred || !recipientAddress) return;
+    if (!address || !selectedToken || !recipientAddress) return;
     setSending(true);
     setSendStep("Sending...");
     setSendError(null);
@@ -111,22 +127,35 @@ export default function SendPage() {
         const result = await executeBridge(
           quote.route,
           address,
-          preferred.feeCurrency as `0x${string}`,
+          selectedToken.feeCurrency as `0x${string}`,
           (s) => setSendStep(s),
         );
         if (!result.success || !result.txHash) throw new Error(result.error || "Bridge failed — please try again");
         hash = result.txHash;
       } else {
-        const amountRaw = parseUnits(amount, preferred.decimals);
-        const data = encodeFunctionData({
-          abi: erc20Abi,
-          functionName: "transfer",
-          args: [recipientAddress, amountRaw],
-        });
+        const amountRaw = parseUnits(amount, selectedToken.decimals);
+        let data: `0x${string}`;
+        let toAddress: `0x${string}`;
+        let valueParam: bigint | undefined = undefined;
+
+        if (selectedToken.symbol === "CELO") {
+          data = "0x";
+          toAddress = recipientAddress;
+          valueParam = amountRaw;
+        } else {
+          data = encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "transfer",
+            args: [recipientAddress, amountRaw],
+          });
+          toAddress = selectedToken.address as `0x${string}`;
+        }
+
         hash = await sendTransaction({
-          to: preferred.address as `0x${string}`,
+          to: toAddress,
           data,
-          feeCurrency: preferred.feeCurrency as `0x${string}`,
+          value: valueParam,
+          feeCurrency: selectedToken.feeCurrency as `0x${string}`,
         });
       }
 
@@ -136,7 +165,7 @@ export default function SendPage() {
         hash,
         chain,
         amount,
-        tokenSymbol: preferred.symbol,
+        tokenSymbol: selectedToken.symbol,
         route: route!,
         recipientDisplay,
         recipientAddress,
@@ -211,8 +240,9 @@ export default function SendPage() {
               value={amount}
               onChange={setAmount}
               fiatDisplay={toLocalFiat(amountNum, country.currencySymbol)}
-              tokenSymbol={preferred?.symbol}
-              maxDecimals={preferred?.decimals === 18 ? 6 : preferred?.decimals ?? 6}
+              tokenSymbol={selectedToken?.symbol}
+              maxDecimals={selectedToken?.decimals === 18 ? 6 : selectedToken?.decimals ?? 6}
+              onTokenClick={() => setOpenTokenSelector(true)}
             />
             {totalUsd === 0 && (
               <div className="card" style={{ textAlign: "center", margin: "16px 0" }}>
@@ -280,7 +310,7 @@ export default function SendPage() {
           <>
             <div className="card card--green" style={{ marginBottom: 16 }}>
               <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("youSend")}</p>
-              <p style={{ fontSize: 32, fontWeight: 800 }}>${amount} {preferred?.symbol}</p>
+              <p style={{ fontSize: 32, fontWeight: 800 }}>${amount} {selectedToken?.symbol}</p>
               <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>{t("fiatEstimate", { amount: toLocalFiat(amountNum, ""), symbol: country.currencySymbol })}</p>
             </div>
 
@@ -296,8 +326,6 @@ export default function SendPage() {
               toLocalFiat={(usd) => toLocalFiat(usd, country.currencySymbol)}
               isLoading={route === "localcrypto" && bridgeStatus === "quoting"}
             />
-
-
 
             {sendError && (
               <div className="card" style={{ borderColor: "var(--error)", marginTop: 12 }}>
@@ -327,6 +355,61 @@ export default function SendPage() {
           ))}
         </div>
       </div>
+
+      {/* Token Selection Bottom Sheet */}
+      {openTokenSelector && (
+        <div className="bottom-sheet-overlay" onClick={() => setOpenTokenSelector(false)}>
+          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet__handle" />
+            <h2 className="bottom-sheet__title">Select Stablecoin or Celo</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {balances.map((token) => (
+                <button
+                  key={token.symbol}
+                  onClick={() => {
+                    setSelectedToken(token);
+                    setOpenTokenSelector(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 16px",
+                    borderRadius: "var(--radius-md)",
+                    background: selectedToken?.symbol === token.symbol ? "var(--green-dim)" : "var(--surface-raised)",
+                    border: selectedToken?.symbol === token.symbol ? "1px solid var(--green)" : "1px solid var(--border)",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left",
+                    color: "var(--text)"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span 
+                      style={{ 
+                        width: 8, 
+                        height: 8, 
+                        borderRadius: "50%", 
+                        background: TOKEN_COLORS[token.symbol] || "var(--text-secondary)" 
+                      }} 
+                    />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{token.symbol}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{token.name}</div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{token.formatted}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      ≈ ${(token.human * (token.priceUsd ?? 1.0)).toFixed(2)}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

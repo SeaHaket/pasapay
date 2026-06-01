@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { createWalletClient, createPublicClient, custom, http } from "viem";
+import { createWalletClient, custom } from "viem";
 import { celo } from "viem/chains";
-import { getAllBalances, getPreferredStablecoin, type StablecoinBalance } from "@/lib/stablecoins";
-import { MINIPAY_DEPOSIT_DEEPLINK } from "@/lib/constants";
+import { getAllBalances, type StablecoinBalance } from "@/lib/stablecoins";
 
 export type MiniPayState = {
   address: `0x${string}` | null;
@@ -20,7 +19,8 @@ export type MiniPayState = {
 export type SendTxParams = {
   to: `0x${string}`;
   data: `0x${string}`;
-  feeCurrency: `0x${string}`;
+  value?: bigint;
+  feeCurrency?: `0x${string}`;
 };
 
 export function useMiniPay(): MiniPayState {
@@ -33,15 +33,13 @@ export function useMiniPay(): MiniPayState {
   const refreshBalances = useCallback(async () => {
     if (!address) return;
     const all = await getAllBalances(address);
-    const usdtOnly = all.filter(b => b.symbol === "USDT");
-    setBalances(usdtOnly);
-    setPreferred(usdtOnly[0] || null);
+    setBalances(all);
 
-    // MiniPay requirement: redirect to deposit deeplink if zero balance
-    if ((!usdtOnly[0] || usdtOnly[0].raw === 0n) && typeof window !== "undefined") {
-      // Only redirect if we're actually in MiniPay and all balances are zero
-      // Don't auto-redirect — let the UI show the deposit button instead
-    }
+    // Set preferred token to USDT by default, fallback to USDC, USDm, or first token
+    const usdt = all.find((b) => b.symbol === "USDT");
+    const usdc = all.find((b) => b.symbol === "USDC");
+    const usdm = all.find((b) => b.symbol === "USDm");
+    setPreferred(usdt || usdc || usdm || all[0] || null);
   }, [address]);
 
   useEffect(() => {
@@ -77,19 +75,29 @@ export function useMiniPay(): MiniPayState {
     if (address) refreshBalances();
   }, [address, refreshBalances]);
 
-  const totalUsd = balances.reduce((sum, b) => sum + b.human, 0);
+  // Calculate total USD across all tokens, multiplying balance by priceUsd
+  const totalUsd = balances.reduce((sum, b) => sum + b.human * b.priceUsd, 0);
 
-  const sendTransaction = useCallback(async ({ to, data, feeCurrency }: SendTxParams): Promise<string> => {
+  const sendTransaction = useCallback(async ({ to, data, value, feeCurrency }: SendTxParams): Promise<string> => {
     if (!address) throw new Error("Wallet not connected");
     const client = createWalletClient({ chain: celo, transport: custom(window.ethereum!) });
 
     // MiniPay constraint: legacy transactions only — no maxFeePerGas / maxPriorityFeePerGas
-    const hash = await client.sendTransaction({
+    const txParams: any = {
       account: address,
       to,
       data,
-      feeCurrency,
-    });
+    };
+
+    if (value !== undefined) {
+      txParams.value = value;
+    }
+
+    if (feeCurrency) {
+      txParams.feeCurrency = feeCurrency;
+    }
+
+    const hash = await client.sendTransaction(txParams);
     return hash;
   }, [address]);
 
