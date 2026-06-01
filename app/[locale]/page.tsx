@@ -65,7 +65,6 @@ export default function HomePage() {
           totalUsd={totalUsd}
           toLocalFiat={(usd) => toLocalFiat(usd, country.currencySymbol)}
           isLoading={isLoading}
-          address={address}
         />
 
         <div className="action-row" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>

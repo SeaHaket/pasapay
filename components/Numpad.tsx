@@ -6,12 +6,11 @@ type Props = {
   fiatDisplay?: string;
   tokenSymbol?: string;
   maxDecimals?: number;
-  onTokenClick?: () => void;
 };
 
 const KEYS = ["1","2","3","4","5","6","7","8","9",".","0","⌫"];
 
-export default function Numpad({ value, onChange, fiatDisplay, tokenSymbol, maxDecimals = 6, onTokenClick }: Props) {
+export default function Numpad({ value, onChange, fiatDisplay, tokenSymbol, maxDecimals = 6 }: Props) {
   function handleKey(key: string) {
     if (key === "⌫") {
       onChange(value.length > 1 ? value.slice(0, -1) : "0");
@@ -42,22 +41,7 @@ export default function Numpad({ value, onChange, fiatDisplay, tokenSymbol, maxD
         )}
         {tokenSymbol && (
           <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
-            <button 
-              onClick={onTokenClick}
-              disabled={!onTokenClick}
-              className="numpad-display__token"
-              style={{
-                cursor: onTokenClick ? "pointer" : "default",
-                border: "none",
-                outline: "none",
-                display: "flex",
-                alignItems: "center",
-                gap: 6
-              }}
-            >
-              <span>💵 {tokenSymbol}</span>
-              {onTokenClick && <span style={{ fontSize: 10, opacity: 0.7 }}>▼</span>}
-            </button>
+            <span className="numpad-display__token">💵 {tokenSymbol}</span>
           </div>
         )}
       </div>

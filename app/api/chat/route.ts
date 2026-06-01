@@ -12,19 +12,19 @@ import {
   getLiveAPYs,
 } from "@/lib/vault";
 
-const SYSTEM_PROMPT = `You are Pasa, the friendly and knowledgeable PasaPay AI Co-pilot assistant specialized in Celo stablecoin payments, native CELO transfers, savings vaults, and yields.
+const SYSTEM_PROMPT = `You are Pasa, the friendly and knowledgeable PasaPay AI Co-pilot assistant specialized in Celo stablecoin payments, savings vaults, and yields.
 
 Your capabilities include:
 1. Explaining and recommending savings vault strategies (Aave V3 vs Morpho Blue/Feather).
 2. Answering general questions about Celo, payments, and DeFi.
-3. Drafting token transfers (USDT, USDC, USDm, or CELO) to other Celo addresses.
+3. Drafting stablecoin transfers to other Celo addresses.
 4. Drafting deposits/withdrawals for Aave V3 and Morpho Blue savings vaults.
 5. Resolving phone numbers to Celo addresses (using ODIS).
 6. Answering questions about the user's past transaction history based on the provided data.
 
 Strict rules you must follow:
-- Support tokens: USDT, USDC, USDm (Mento Dollar), and native CELO.
-- Enable displaying, discussing, sending, and receiving the native CELO token alongside stablecoins.
+- Only support stablecoins: USDT, USDC, and USDm (Mento Dollar).
+- NEVER display, discuss, require, or recommend the native CELO token. MiniPay hides CELO from users and manages gas via stablecoin fee abstraction.
 - When explaining savings options:
   * Aave V3 has deep liquidity and safety, currently offering 4.50% APY.
   * Morpho Blue (Feather USDT Vault) has isolated peer-to-peer yields, currently offering 4.73% APY.
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
             },
             {
               name: "draft_transfer",
-              description: "Drafts a token transfer (USDT, USDC, USDm, or CELO) to a recipient address.",
+              description: "Drafts a stablecoin transfer to a recipient address.",
               parameters: {
                 type: SchemaType.OBJECT,
                 properties: {
@@ -97,11 +97,11 @@ export async function POST(req: NextRequest) {
                   },
                   amount: {
                     type: SchemaType.STRING,
-                    description: "The amount of tokens to transfer (e.g. '10.5')."
+                    description: "The amount of stablecoin to transfer (e.g. '10.5')."
                   },
                   symbol: {
                     type: SchemaType.STRING,
-                    description: "The token symbol: 'USDT', 'USDC', 'USDm', or 'CELO'. Default is 'USDT'."
+                    description: "The stablecoin symbol: 'USDT', 'USDC', or 'USDm'. Default is 'USDT'."
                   }
                 },
                 required: ["to", "amount"]
@@ -197,43 +197,29 @@ export async function POST(req: NextRequest) {
             functionResult = { address: rData.address };
           } else if (name === "draft_transfer") {
             const { to, amount, symbol } = args as any;
-            const tokenSym = (symbol || "USDT").toUpperCase();
-            
-            if (tokenSym === "CELO") {
-              const amountRaw = parseUnits(amount, 18);
-              functionResult = {
-                txs: [{
-                  to: to as `0x${string}`,
-                  data: "0x" as `0x${string}`,
-                  feeCurrency: undefined,
-                  label: `Transfer ${amount} CELO`,
-                  value: amountRaw.toString()
-                }]
-              };
-            } else {
-              const token = VAULT_TOKENS.find(t => t.symbol === tokenSym) || {
-                address: USDT_ADDRESS,
-                decimals: 6,
-                feeCurrency: USDT_FEE_CURRENCY
-              };
+            const tokenSym = symbol || "USDT";
+            const token = VAULT_TOKENS.find(t => t.symbol === tokenSym) || {
+              address: USDT_ADDRESS,
+              decimals: 6,
+              feeCurrency: USDT_FEE_CURRENCY
+            };
 
-              const amountRaw = parseUnits(amount, token.decimals);
-              const txData = encodeFunctionData({
-                abi: erc20Abi,
-                functionName: "transfer",
-                args: [to as `0x${string}`, amountRaw]
-              });
+            const amountRaw = parseUnits(amount, token.decimals);
+            const txData = encodeFunctionData({
+              abi: erc20Abi,
+              functionName: "transfer",
+              args: [to as `0x${string}`, amountRaw]
+            });
 
-              functionResult = {
-                txs: [{
-                  to: token.address,
-                  data: txData,
-                  feeCurrency: token.feeCurrency,
-                  label: `Transfer $${amount} ${tokenSym}`,
-                  value: "0"
-                }]
-              };
-            }
+            functionResult = {
+              txs: [{
+                to: token.address,
+                data: txData,
+                feeCurrency: token.feeCurrency,
+                label: `Transfer $${amount} ${tokenSym}`,
+                value: "0"
+              }]
+            };
           } else if (name === "draft_deposit") {
             const { protocol, amount } = args as any;
             const amountRaw = parseUnits(amount, 6);
