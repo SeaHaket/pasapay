@@ -18,7 +18,7 @@ export type MiniPayState = {
 
 export type SendTxParams = {
   to: `0x${string}`;
-  data: `0x${string}`;
+  data?: `0x${string}`;
   value?: bigint;
   feeCurrency?: `0x${string}`;
 };
@@ -86,8 +86,11 @@ export function useMiniPay(): MiniPayState {
     const txParams: any = {
       account: address,
       to,
-      data,
     };
+
+    if (data && data !== "0x") {
+      txParams.data = data;
+    }
 
     if (value !== undefined) {
       txParams.value = value;

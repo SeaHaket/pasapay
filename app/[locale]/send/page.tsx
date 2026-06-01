@@ -134,12 +134,11 @@ export default function SendPage() {
         hash = result.txHash;
       } else {
         const amountRaw = parseUnits(amount, selectedToken.decimals);
-        let data: `0x${string}`;
+        let data: `0x${string}` | undefined = undefined;
         let toAddress: `0x${string}`;
         let valueParam: bigint | undefined = undefined;
 
         if (selectedToken.symbol === "CELO") {
-          data = "0x";
           toAddress = recipientAddress;
           valueParam = amountRaw;
         } else {
@@ -264,7 +263,14 @@ export default function SendPage() {
             <div style={{ padding: "16px 8px 0" }}>
               <button
                 className="btn btn--primary"
-                onClick={() => isQuickSend ? setStep("review") : setStep("route")}
+                onClick={() => {
+                  if (selectedToken?.symbol === "CELO") {
+                    setRoute("minipay");
+                    setStep("recipient");
+                  } else {
+                    isQuickSend ? setStep("review") : setStep("route");
+                  }
+                }}
                 disabled={!hasBalance}
               >
                 {t("continue")} →

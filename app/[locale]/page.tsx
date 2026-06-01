@@ -133,10 +133,6 @@ export default function HomePage() {
           <span className="bottom-nav__icon"><Send size={22} /></span>
           <span>{t("send")}</span>
         </Link>
-        <Link href="/chat" className="bottom-nav__item">
-          <span className="bottom-nav__icon"><Sparkles size={22} /></span>
-          <span>Co-pilot</span>
-        </Link>
         <Link href="/vault" className="bottom-nav__item">
           <span className="bottom-nav__icon"><PiggyBank size={22} /></span>
           <span>Vault</span>
