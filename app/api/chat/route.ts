@@ -12,7 +12,7 @@ import {
   getLiveAPYs,
 } from "@/lib/vault";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
 
 const SYSTEM_PROMPT = `You are the PasaPay AI Co-pilot, a friendly and knowledgeable assistant specialized in Celo stablecoin payments, savings vaults, and yields.
 
@@ -41,6 +41,16 @@ Strict rules you must follow:
 
 export async function POST(req: NextRequest) {
   try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey.trim() === "") {
+      return NextResponse.json({
+        content: "⚠️ **Gemini API Key is not loaded!**\n\nIf you just added the key to your `.env.local` file, you **must restart your Next.js development server** (stop it and run `npm run dev` again) so Next.js can load the new environment variables.",
+        txs: null
+      });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+
     const { messages } = await req.json();
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid messages array" }, { status: 400 });
@@ -388,6 +398,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: any) {
     console.error("[chat-api] error:", err);
-    return NextResponse.json({ error: err?.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({
+      content: `❌ **API Error:** ${err?.message || "An unknown error occurred."}\n\nPlease check your server logs or API key configuration.`,
+      txs: null
+    });
   }
 }
