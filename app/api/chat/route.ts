@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.5-flash",
       systemInstruction: dynamicSystemPrompt,
       tools: [
         {
@@ -165,9 +165,9 @@ export async function POST(req: NextRequest) {
 
     // Filter out error messages to keep history clean and avoid confusing the LLM
     const cleanMessages = messages.filter(
-      (m: any) => 
-        m.content && 
-        !m.content.includes("Sorry, I encountered an error") && 
+      (m: any) =>
+        m.content &&
+        !m.content.includes("Sorry, I encountered an error") &&
         !m.content.includes("Transaction failed")
     );
 
