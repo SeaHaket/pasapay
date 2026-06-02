@@ -49,8 +49,18 @@ Strict guidelines and rules you must abide by:
    - Aave V3 is currently offering 4.50% APY (deep liquidity).
    - Use the get_vault_apys tool to check live yields if asked. If the tool is not executed or fails, strictly state they are estimates.
 
-5. TRANSACTION HISTORY LOOKUPS:
-   - When asked about past spending, transaction status, or totals, inspect the "User's Recent Transaction History" block provided in your context. Name the exact date, amount, or recipient from that log.
+ 5. TRANSACTION HISTORY LOOKUPS:
+    - When asked about past spending, transaction status, or totals, inspect the "User's Recent Transaction History" block provided in your context. Name the exact date, amount, or recipient from that log.
+
+ 6. WALLET BALANCE & QUICK SEND ENQUIRIES:
+    - When asked "what is my balance?", "how much do I have?", "what is my total portfolio?", "show my vault savings", or similar, inspect the "User's Stablecoin Balances in PasaPay" block AND the "User's Deposited Vault Balances (Earnings)" block in your context.
+    - Sum them up to give a complete yield portfolio summary (e.g., "$10.50 USDT in your wallet + $20.00 USDT earning yield in vaults = $30.50 USDT total assets"). Clearly separate what is in their wallet (spendable) versus what is in Aave V3 or Morpho Blue (earning yield). Keep responses brief and compliant with MiniPay compliance rules.
+    - If asked about "quick send details", "quick send", or "who can I send to quickly?", refer to the "User's Quick Send Details (Top Contacts)" block in your context. List their top quick contacts with their names, routes, and countries, and ask if they'd like to draft a transfer to any of them.
+    - When the user asks to send quickly, offramp, withdraw, or cash out, recommend the best option matching their context:
+      * For the Philippines (PH/PHP): Explicitly state that Fonbnk is their primary and highly preferred offramp route, allowing direct cash-outs to Philippine banks (like GCash, Maya, BDO, UnionBank, etc.). Generate a direct Fonbnk link using: https://pay.fonbnk.com/offramp?walletAddress=<USER_WALLET_ADDRESS>&network=celo&currency=PHP (replace <USER_WALLET_ADDRESS> with the user's wallet address from "User's Wallet Address").
+      * For African countries (NG, KE, GH, ZA, UG, TZ, RW, SN, CM): Recommend Fonbnk and generate a direct link: https://pay.fonbnk.com/offramp?walletAddress=<USER_WALLET_ADDRESS>&network=celo&currency=<CURRENCY_CODE> (replace <USER_WALLET_ADDRESS> with user's wallet address, and <CURRENCY_CODE> with KES, NGN, GHS, ZAR, UGX, TZS, RWF, XOF, XAF accordingly).
+      * For other countries: Suggest using Transak (Sell) or other local crypto offramps.
+    - When generating offramp links, if the wallet address is not available in your context, omit the 'walletAddress' query parameter from the URL. Keep URLs compact and clean.
 `;
 
 export async function POST(req: NextRequest) {
@@ -65,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    const { messages, history: userHistory } = await req.json();
+    const { messages, history: userHistory, walletAddress, balances, quickContacts, vaultBalances } = await req.json();
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid messages array" }, { status: 400 });
     }
@@ -74,6 +84,18 @@ export async function POST(req: NextRequest) {
     let dynamicSystemPrompt = SYSTEM_PROMPT;
     if (userHistory && Array.isArray(userHistory) && userHistory.length > 0) {
       dynamicSystemPrompt += `\n\nUser's Recent Transaction History:\n${JSON.stringify(userHistory.slice(0, 15), null, 2)}`;
+    }
+    if (walletAddress) {
+      dynamicSystemPrompt += `\n\nUser's Wallet Address: ${walletAddress}`;
+    }
+    if (balances && Array.isArray(balances) && balances.length > 0) {
+      dynamicSystemPrompt += `\n\nUser's Stablecoin Balances in PasaPay:\n${JSON.stringify(balances, null, 2)}`;
+    }
+    if (quickContacts && Array.isArray(quickContacts) && quickContacts.length > 0) {
+      dynamicSystemPrompt += `\n\nUser's Quick Send Details (Top Contacts):\n${JSON.stringify(quickContacts, null, 2)}`;
+    }
+    if (vaultBalances) {
+      dynamicSystemPrompt += `\n\nUser's Deposited Vault Balances (Earnings):\n- Aave V3 Savings Vault: $${Number(vaultBalances.aave).toFixed(2)} USDT (earning 4.50% APY)\n- Morpho Blue Savings Vault: $${Number(vaultBalances.morpho).toFixed(2)} USDT (earning 4.73% APY)`;
     }
 
     const model = genAI.getGenerativeModel({

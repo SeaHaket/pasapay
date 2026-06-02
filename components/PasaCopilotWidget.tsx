@@ -8,7 +8,8 @@ import { useMiniPay } from "@/hooks/useMiniPay";
 import { createPublicClient, http } from "viem";
 import { celo } from "viem/chains";
 import { CELO_RPC } from "@/lib/constants";
-import { loadHistory } from "@/lib/history";
+import { loadHistory, getQuickContacts, type QuickContact } from "@/lib/history";
+import { getATokenBalance, getFeatherBalance, AUSDT_ADDRESS } from "@/lib/vault";
 
 import { usePathname } from "next/navigation";
 
@@ -23,9 +24,38 @@ type TxStepStatus = "idle" | "sending" | "confirmed" | "error";
 
 export default function PasaCopilotWidget() {
   const pathname = usePathname();
-  const { address, isMiniPay, sendTransaction } = useMiniPay();
+  const { address, isMiniPay, balances, sendTransaction } = useMiniPay();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [quickContacts, setQuickContacts] = useState<QuickContact[]>([]);
+  const [vaultBalances, setVaultBalances] = useState<{ aave: number; morpho: number } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setQuickContacts(getQuickContacts(5));
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    async function loadVault() {
+      if (!address) return;
+      try {
+        const [aaveRaw, morphoRaw] = await Promise.all([
+          getATokenBalance(AUSDT_ADDRESS, address),
+          getFeatherBalance(address),
+        ]);
+        setVaultBalances({
+          aave: Number(aaveRaw) / 1e6,
+          morpho: Number(morphoRaw) / 1e6,
+        });
+      } catch (err) {
+        console.error("Failed to load vault balances for widget:", err);
+      }
+    }
+    if (address && isOpen) {
+      loadVault();
+    }
+  }, [address, isOpen]);
 
   // Prevent double rendering if already on the full-page chat route
   if (pathname && pathname.includes("/chat")) return null;
@@ -83,7 +113,11 @@ export default function PasaCopilotWidget() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           messages: updatedMessages,
-          history: txHistory
+          history: txHistory,
+          walletAddress: address,
+          balances: balances,
+          quickContacts: quickContacts,
+          vaultBalances: vaultBalances
         }),
       });
 

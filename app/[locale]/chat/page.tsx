@@ -10,6 +10,8 @@ import { useMiniPay } from "@/hooks/useMiniPay";
 import { createPublicClient, http } from "viem";
 import { celo } from "viem/chains";
 import { CELO_RPC } from "@/lib/constants";
+import { loadHistory, getQuickContacts, type QuickContact } from "@/lib/history";
+import { getATokenBalance, getFeatherBalance, AUSDT_ADDRESS } from "@/lib/vault";
 
 interface Message {
   id: string;
@@ -26,7 +28,34 @@ export default function ChatPage() {
   const te = useTranslations("errors");
   const { address, isMiniPay, balances, sendTransaction } = useMiniPay();
 
+  const [quickContacts, setQuickContacts] = useState<QuickContact[]>([]);
+  const [vaultBalances, setVaultBalances] = useState<{ aave: number; morpho: number } | null>(null);
   const [input, setInput] = useState("");
+
+  useEffect(() => {
+    setQuickContacts(getQuickContacts(5));
+  }, []);
+
+  useEffect(() => {
+    async function loadVault() {
+      if (!address) return;
+      try {
+        const [aaveRaw, morphoRaw] = await Promise.all([
+          getATokenBalance(AUSDT_ADDRESS, address),
+          getFeatherBalance(address),
+        ]);
+        setVaultBalances({
+          aave: Number(aaveRaw) / 1e6,
+          morpho: Number(morphoRaw) / 1e6,
+        });
+      } catch (err) {
+        console.error("Failed to load vault balances for page:", err);
+      }
+    }
+    if (address) {
+      loadVault();
+    }
+  }, [address]);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -71,7 +100,14 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ 
+          messages: updatedMessages,
+          history: loadHistory(),
+          walletAddress: address,
+          balances: balances,
+          quickContacts: quickContacts,
+          vaultBalances: vaultBalances
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to contact assistant");
