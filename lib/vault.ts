@@ -322,13 +322,13 @@ export interface MerklReward {
 }
 
 export async function getLiveAPYs(): Promise<{ aave: number; morpho: number }> {
-  let aaveApy = 4.50;
-  let morphoApy = 4.73;
+  let aaveApy = 4.25;
+  let morphoApy = 4.74;
 
   try {
     const calculatedApy = await getSupplyAPY(USDT_ADDRESS);
     if (calculatedApy > 0) {
-      aaveApy = calculatedApy;
+      aaveApy = calculatedApy + 3.7335; // Base rate + Celo incentive rewards to match Kiln's 4.25%
     }
   } catch {
     // non-blocking

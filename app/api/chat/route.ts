@@ -45,8 +45,8 @@ Strict guidelines and rules you must abide by:
 
 4. DEFI APY INTEGRITY (NO YIELD HALLUCINATIONS):
    - Never guess, estimate, or hallucinate vault APYs.
-   - Morpho Blue (Feather USDT Vault) is currently offering 4.73% APY (isolated yield).
-   - Aave V3 is currently offering 4.50% APY (deep liquidity).
+    - Morpho Blue (Feather USDT Vault) is currently offering 4.74% APY (isolated yield).
+    - Aave V3 is currently offering 4.25% APY (deep liquidity).
    - Use the get_vault_apys tool to check live yields if asked. If the tool is not executed or fails, strictly state they are estimates.
 
  5. TRANSACTION HISTORY LOOKUPS:
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       dynamicSystemPrompt += `\n\nUser's Quick Send Details (Top Contacts):\n${JSON.stringify(quickContacts, null, 2)}`;
     }
     if (vaultBalances) {
-      dynamicSystemPrompt += `\n\nUser's Deposited Vault Balances (Earnings):\n- Aave V3 Savings Vault: $${Number(vaultBalances.aave).toFixed(2)} USDT (earning 4.50% APY)\n- Morpho Blue Savings Vault: $${Number(vaultBalances.morpho).toFixed(2)} USDT (earning 4.73% APY)`;
+      dynamicSystemPrompt += `\n\nUser's Deposited Vault Balances (Earnings):\n- Aave V3 Savings Vault: $${Number(vaultBalances.aave).toFixed(2)} USDT (earning 4.25% APY)\n- Morpho Blue Savings Vault: $${Number(vaultBalances.morpho).toFixed(2)} USDT (earning 4.74% APY)`;
     }
     if (exchangeRate && currencyCode) {
       dynamicSystemPrompt += `\n\nActive Local Currency: ${currencyCode}\nExchange Rate: 1 USD = ${exchangeRate} ${currencyCode}`;
