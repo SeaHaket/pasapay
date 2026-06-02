@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { 
   ChevronLeft, Send, Sparkles, Loader, CheckCircle, AlertCircle, 
-  TrendingUp, Wallet, ArrowRightLeft, PiggyBank, Home, Send as SendIcon, Clock
+  TrendingUp, Wallet, ArrowRightLeft, PiggyBank, Home, Send as SendIcon, Clock, Trash2
 } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useMiniPay } from "@/hooks/useMiniPay";
@@ -88,6 +88,21 @@ export default function ChatPage() {
 
   const handleSuggestion = (text: string) => {
     setInput(text);
+  };
+
+  const handleClearChat = () => {
+    setMessages([
+      {
+        id: "welcome",
+        role: "assistant",
+        content: "Hello! I am your PasaPay AI Co-pilot. I can help you check live savings yields, deposit into vaults, or transfer stablecoins to other users. What would you like to do today?",
+      }
+    ]);
+    setTxStepIndex(-1);
+    setTxStatus("idle");
+    setActiveTxMsg("");
+    setActiveError(null);
+    setInput("");
   };
 
   const handleSend = async (textToSend?: string) => {
@@ -247,7 +262,14 @@ export default function ChatPage() {
           <Sparkles size={18} className="text-glow" style={{ color: "var(--green)" }} />
           <h1 style={{ fontSize: 18, fontWeight: 700 }}>AI Co-pilot</h1>
         </div>
-        <div style={{ width: 40 }} />
+        <button
+          onClick={handleClearChat}
+          className="btn btn--ghost"
+          style={{ width: 40, height: 40, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}
+          title="Clear Chat"
+        >
+          <Trash2 size={20} />
+        </button>
       </header>
 
       <main className="page" style={{ paddingTop: 8, paddingBottom: 160, display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>

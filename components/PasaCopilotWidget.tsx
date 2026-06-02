@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { 
   Sparkles, Send, Loader, CheckCircle, AlertCircle, 
-  Wallet, X, RefreshCw
+  Wallet, X, RefreshCw, Trash2
 } from "lucide-react";
 import { useMiniPay } from "@/hooks/useMiniPay";
 import { createPublicClient, http } from "viem";
@@ -96,6 +96,21 @@ export default function PasaCopilotWidget() {
 
   const handleSuggestion = (text: string) => {
     setInput(text);
+  };
+
+  const handleClearChat = () => {
+    setMessages([
+      {
+        id: "welcome",
+        role: "assistant",
+        content: "Hello! I am Pasa, your PasaPay AI Co-pilot. I can help you check savings vault yields, deposit funds, or review your transaction history. Just ask me!",
+      }
+    ]);
+    setTxStepIndex(-1);
+    setTxStatus("idle");
+    setActiveTxMsg("");
+    setActiveError(null);
+    setInput("");
   };
 
   const handleSend = async (textToSend?: string) => {
@@ -346,23 +361,43 @@ export default function PasaCopilotWidget() {
               </div>
             </div>
 
-            <button
-              onClick={() => setIsOpen(false)}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.05)",
-                border: "none",
-                color: "var(--text-secondary)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-              }}
-            >
-              <X size={16} />
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                onClick={handleClearChat}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "none",
+                  color: "var(--text-secondary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+                title="Clear Chat"
+              >
+                <Trash2 size={15} />
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "none",
+                  color: "var(--text-secondary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Messages Body */}
