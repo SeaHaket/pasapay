@@ -118,7 +118,7 @@ export default function ChatPage() {
           messages: updatedMessages,
           history: loadHistory(),
           walletAddress: address,
-          balances: balances,
+          balances: balances.map(b => ({ ...b, raw: b.raw.toString() })),
           quickContacts: quickContacts,
           vaultBalances: vaultBalances,
           exchangeRate: exchangeRate,

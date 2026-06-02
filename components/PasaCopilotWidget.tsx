@@ -129,7 +129,7 @@ export default function PasaCopilotWidget() {
           messages: updatedMessages,
           history: txHistory,
           walletAddress: address,
-          balances: balances,
+          balances: balances.map(b => ({ ...b, raw: b.raw.toString() })),
           quickContacts: quickContacts,
           vaultBalances: vaultBalances,
           exchangeRate: exchangeRate,
