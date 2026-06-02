@@ -61,6 +61,13 @@ Strict guidelines and rules you must abide by:
       * For African countries (NG, KE, GH, ZA, UG, TZ, RW, SN, CM): Recommend Fonbnk and generate a direct link: https://pay.fonbnk.com/offramp?walletAddress=<USER_WALLET_ADDRESS>&network=celo&currency=<CURRENCY_CODE> (replace <USER_WALLET_ADDRESS> with user's wallet address, and <CURRENCY_CODE> with KES, NGN, GHS, ZAR, UGX, TZS, RWF, XOF, XAF accordingly).
       * For other countries: Suggest using Transak (Sell) or other local crypto offramps.
     - When generating offramp links, if the wallet address is not available in your context, omit the 'walletAddress' query parameter from the URL. Keep URLs compact and clean.
+
+ 7. CURRENCY & LANGUAGE PARSING:
+    - **Local Language Support**: Always detect the language of the user's input. Answer in their **same local language** (e.g. Filipino/Tagalog, Swahili, Spanish, etc.) naturally and fluently, while strictly maintaining the compliant vocabulary terms (such as "Network fee", "Deposit", "Withdraw", "Stablecoin").
+    - **Frictionless Local Amount Parsing**: Always read the **exact correct numeric amount** from what the user is asking. If they request to send or save an amount in their local fiat currency (e.g. "₱100", "100 PHP", "500 pesos", "1000 KSh"), you **must calculate the stablecoin (USD) equivalent** using the active exchange rate in your context:
+      * Formula: stablecoin_amount = local_amount / exchange_rate.
+      * For example: If the exchange rate is 1 USD = 58 PHP, and the user says "Send 100 pesos to Alice", calculate 100 / 58 = 1.72 USDT, and call the draft transfer tool with 'amount: "1.72"'. State this conversion clearly to the user in your reply.
+      * If they specify the amount directly in stablecoin / USD (e.g. "10 USDT" or "$10"), use the number 10 directly without any conversion.
 `;
 
 export async function POST(req: NextRequest) {
@@ -75,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    const { messages, history: userHistory, walletAddress, balances, quickContacts, vaultBalances } = await req.json();
+    const { messages, history: userHistory, walletAddress, balances, quickContacts, vaultBalances, exchangeRate, currencyCode } = await req.json();
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid messages array" }, { status: 400 });
     }
@@ -96,6 +103,9 @@ export async function POST(req: NextRequest) {
     }
     if (vaultBalances) {
       dynamicSystemPrompt += `\n\nUser's Deposited Vault Balances (Earnings):\n- Aave V3 Savings Vault: $${Number(vaultBalances.aave).toFixed(2)} USDT (earning 4.50% APY)\n- Morpho Blue Savings Vault: $${Number(vaultBalances.morpho).toFixed(2)} USDT (earning 4.73% APY)`;
+    }
+    if (exchangeRate && currencyCode) {
+      dynamicSystemPrompt += `\n\nActive Local Currency: ${currencyCode}\nExchange Rate: 1 USD = ${exchangeRate} ${currencyCode}`;
     }
 
     const modelOptions: ModelParams = {

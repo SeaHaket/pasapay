@@ -12,6 +12,8 @@ import { loadHistory, getQuickContacts, type QuickContact } from "@/lib/history"
 import { getATokenBalance, getFeatherBalance, AUSDT_ADDRESS } from "@/lib/vault";
 
 import { usePathname } from "next/navigation";
+import { useExchangeRate } from "@/hooks/useExchangeRate";
+import { getCountryConfig } from "@/config/countries";
 
 interface Message {
   id: string;
@@ -56,6 +58,15 @@ export default function PasaCopilotWidget() {
       loadVault();
     }
   }, [address, isOpen]);
+
+  const [countryId, setCountryId] = useState("PH");
+  useEffect(() => {
+    const saved = localStorage.getItem("pp_country");
+    if (saved) setCountryId(saved);
+  }, []);
+
+  const country = getCountryConfig(countryId);
+  const { rate: exchangeRate } = useExchangeRate(country.currencyCode);
 
   // Prevent double rendering if already on the full-page chat route
   if (pathname && pathname.includes("/chat")) return null;
@@ -117,7 +128,9 @@ export default function PasaCopilotWidget() {
           walletAddress: address,
           balances: balances,
           quickContacts: quickContacts,
-          vaultBalances: vaultBalances
+          vaultBalances: vaultBalances,
+          exchangeRate: exchangeRate,
+          currencyCode: country.currencyCode
         }),
       });
 

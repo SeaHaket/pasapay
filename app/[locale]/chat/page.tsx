@@ -12,6 +12,8 @@ import { celo } from "viem/chains";
 import { CELO_RPC } from "@/lib/constants";
 import { loadHistory, getQuickContacts, type QuickContact } from "@/lib/history";
 import { getATokenBalance, getFeatherBalance, AUSDT_ADDRESS } from "@/lib/vault";
+import { useExchangeRate } from "@/hooks/useExchangeRate";
+import { getCountryConfig } from "@/config/countries";
 
 interface Message {
   id: string;
@@ -56,6 +58,15 @@ export default function ChatPage() {
       loadVault();
     }
   }, [address]);
+
+  const [countryId, setCountryId] = useState("PH");
+  useEffect(() => {
+    const saved = localStorage.getItem("pp_country");
+    if (saved) setCountryId(saved);
+  }, []);
+
+  const country = getCountryConfig(countryId);
+  const { rate: exchangeRate } = useExchangeRate(country.currencyCode);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -106,7 +117,9 @@ export default function ChatPage() {
           walletAddress: address,
           balances: balances,
           quickContacts: quickContacts,
-          vaultBalances: vaultBalances
+          vaultBalances: vaultBalances,
+          exchangeRate: exchangeRate,
+          currencyCode: country.currencyCode
         }),
       });
 
