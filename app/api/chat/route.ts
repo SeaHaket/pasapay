@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType, type ModelParams } from "@google/generative-ai";
 import { parseUnits, encodeFunctionData, erc20Abi } from "viem";
 import {
   USDT_ADDRESS,
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
       dynamicSystemPrompt += `\n\nUser's Deposited Vault Balances (Earnings):\n- Aave V3 Savings Vault: $${Number(vaultBalances.aave).toFixed(2)} USDT (earning 4.50% APY)\n- Morpho Blue Savings Vault: $${Number(vaultBalances.morpho).toFixed(2)} USDT (earning 4.73% APY)`;
     }
 
-    const model = genAI.getGenerativeModel({
+    const modelOptions: ModelParams = {
       model: "gemini-3.5-flash",
       systemInstruction: dynamicSystemPrompt,
       tools: [
@@ -183,7 +183,8 @@ export async function POST(req: NextRequest) {
           ]
         }
       ]
-    });
+    };
+    const model = genAI.getGenerativeModel(modelOptions);
 
     // Filter out error messages to keep history clean and avoid confusing the LLM
     const cleanMessages = messages.filter(
@@ -207,7 +208,21 @@ export async function POST(req: NextRequest) {
     const lastMessage = chatMessages[chatMessages.length - 1].content;
     const chat = model.startChat({ history });
 
-    let responseResult = await chat.sendMessage(lastMessage);
+    let responseResult;
+    let activeChat = chat;
+
+    try {
+      // Try sending with gemini-3.5-flash, setting a 4-second timeout to avoid Vercel 10s timeout on 503 retries
+      responseResult = await chat.sendMessage(lastMessage, { timeout: 4000 });
+    } catch (err: any) {
+      console.warn(`[chat-api] gemini-3.5-flash failed or timed out: ${err?.message || err}. Falling back to gemini-2.5-flash...`);
+      modelOptions.model = "gemini-2.5-flash";
+      const fallbackModel = genAI.getGenerativeModel(modelOptions);
+      const fallbackChat = fallbackModel.startChat({ history });
+      responseResult = await fallbackChat.sendMessage(lastMessage);
+      activeChat = fallbackChat;
+    }
+
     let response = responseResult.response;
     let calls = response.functionCalls();
 
@@ -412,7 +427,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const followUp = await chat.sendMessage(callResults);
+      const followUp = await activeChat.sendMessage(callResults);
       response = followUp.response;
       calls = response.functionCalls();
     }

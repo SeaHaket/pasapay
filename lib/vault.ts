@@ -326,14 +326,9 @@ export async function getLiveAPYs(): Promise<{ aave: number; morpho: number }> {
   let morphoApy = 4.73;
 
   try {
-    const res = await fetch("https://yields.llama.fi/pools");
-    const data = await res.json();
-    const celoPools = data.data.filter(
-      (p: any) => p.chain === "Celo" && (p.symbol === "USDT" || p.symbol === "USD₮")
-    );
-    const aavePool = celoPools.find((p: any) => p.project === "aave-v3");
-    if (aavePool) {
-      aaveApy = aavePool.apy > 1.5 ? aavePool.apy : aavePool.apy + 3.86;
+    const calculatedApy = await getSupplyAPY(USDT_ADDRESS);
+    if (calculatedApy > 0) {
+      aaveApy = calculatedApy;
     }
   } catch {
     // non-blocking
