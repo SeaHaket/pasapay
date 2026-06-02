@@ -145,7 +145,10 @@ export default function RecipientInput({ route, onResolved }: Props) {
         throw new Error(te("invalidPhone") || "Phone must be in E.164 format (e.g. +639171234567)");
       }
 
-      const res = await fetch("/api/resolve-phone", {
+      const baseUrl = typeof window !== "undefined" && window.location.origin && !window.location.origin.startsWith("minipay") && !window.location.origin.startsWith("file")
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "";
+      const res = await fetch(`${baseUrl}/api/resolve-phone`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone }),

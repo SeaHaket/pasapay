@@ -119,7 +119,10 @@ export default function PasaCopilotWidget() {
       // Gather latest transaction history context from localStorage
       const txHistory = loadHistory();
 
-      const res = await fetch("/api/chat", {
+      const baseUrl = typeof window !== "undefined" && window.location.origin && !window.location.origin.startsWith("minipay") && !window.location.origin.startsWith("file")
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "";
+      const res = await fetch(`${baseUrl}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
