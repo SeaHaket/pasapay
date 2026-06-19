@@ -1,7 +1,7 @@
 "use client";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { Home, Send, Clock, PiggyBank, MessageCircle, FileText, Shield, Sparkles } from "lucide-react";
+import { Home, Send, Clock, PiggyBank, MessageCircle, FileText, Shield, Sparkles, Ship } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 
 const APP_VERSION = "0.1.0";
@@ -29,6 +29,13 @@ export default function SettingsPage() {
             </div>
             <span className="settings-row__right">↗</span>
           </a>
+          <Link href="/deposit-guide" className="settings-row" style={{ borderBottom: "none" }}>
+            <div className="settings-row__left">
+              <span className="settings-row__icon"><Ship size={20} /></span>
+              <span className="settings-row__label">Deposit from Ship Guide</span>
+            </div>
+            <span className="settings-row__right">›</span>
+          </Link>
         </div>
 
         {/* Legal — required by MiniPay listing rules */}

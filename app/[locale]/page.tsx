@@ -98,6 +98,17 @@ export default function HomePage() {
           </div>
         </div>
 
+        <Link href="/deposit-guide" className="card card--glass" style={{ margin: "0 0 24px", display: "flex", alignItems: "center", gap: 16, padding: "16px", textDecoration: "none", color: "var(--text)" }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(0,200,83,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--green)", flexShrink: 0 }}>
+            <Smartphone size={22} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 2 }}>Deposit from Ship</p>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}>Send your Brightwell wages to PasaPay</p>
+          </div>
+          <span style={{ color: "var(--text-secondary)", fontSize: 18 }}>›</span>
+        </Link>
+
         <p className="section-title">{t("recentActivity")}</p>
         {recentTxs.length === 0 ? (
           <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>

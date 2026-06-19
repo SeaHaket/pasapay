@@ -322,29 +322,58 @@ export interface MerklReward {
 }
 
 export async function getLiveAPYs(): Promise<{ aave: number; morpho: number }> {
-  let aaveApy = 4.25;
-  let morphoApy = 4.74;
+  let aaveApy = 0;
+  let morphoApy = 0;
 
+  // ── Aave: on-chain base supply rate ──────────────────────────────────────
   try {
-    const calculatedApy = await getSupplyAPY(USDT_ADDRESS);
-    if (calculatedApy > 0) {
-      aaveApy = calculatedApy + 3.7335; // Base rate + Celo incentive rewards to match Kiln's 4.25%
-    }
+    aaveApy = await getSupplyAPY(USDT_ADDRESS);
   } catch {
-    // non-blocking
+    // non-blocking — will be 0
   }
 
+  // ── Morpho: on-chain share-price growth over ~1 week ─────────────────────
   try {
-    const res = await fetch("https://api.merkl.xyz/v4/opportunities?chainId=42220");
+    morphoApy = await getFeatherAPY();
+  } catch {
+    // non-blocking — will be 0
+  }
+
+  // ── Merkl incentives: add reward APR on top of base yields ───────────────
+  try {
+    const res = await fetch("https://api.merkl.xyz/v4/opportunities?chainId=42220", {
+      signal: AbortSignal.timeout(5000),
+    });
     const data = await res.json();
-    const featherOpportunity = data.find(
-      (o: any) => o.identifier.toLowerCase() === FEATHER_USDT_VAULT.toLowerCase()
+
+    // Look for Aave USDT lending opportunity (Merkl reward boost)
+    const aaveOpportunity = data.find(
+      (o: any) =>
+        o.identifier?.toLowerCase() === VAULT_TOKENS[0].aTokenAddress.toLowerCase() ||
+        (o.name?.toLowerCase().includes("aave") && o.name?.toLowerCase().includes("usdt"))
     );
-    if (featherOpportunity && featherOpportunity.apr > 0) {
-      morphoApy = featherOpportunity.apr * 0.965;
+    if (aaveOpportunity?.apr > 0) {
+      aaveApy += aaveOpportunity.apr;
+    }
+
+    // Look for Feather USDT vault opportunity (Merkl reward boost)
+    const featherOpportunity = data.find(
+      (o: any) => o.identifier?.toLowerCase() === FEATHER_USDT_VAULT.toLowerCase()
+    );
+    if (featherOpportunity?.apr > 0) {
+      // If on-chain share-price returned 0 (e.g. vault too new), use Merkl as primary
+      if (morphoApy === 0) {
+        morphoApy = featherOpportunity.apr * 0.965;
+      } else {
+        // Add any extra Merkl incentive on top of the on-chain yield
+        const merklBonus = featherOpportunity.apr - morphoApy;
+        if (merklBonus > 0) {
+          morphoApy += merklBonus;
+        }
+      }
     }
   } catch {
-    // non-blocking
+    // non-blocking — base yields still available
   }
 
   return {

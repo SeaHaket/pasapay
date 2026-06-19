@@ -1,0 +1,13 @@
+{
+  "type": "Agent",
+  "name": "Pasa",
+  "description": "Your friendly and knowledgeable PasaPay AI Co-pilot assistant specialized in Celo stablecoin payments, savings vaults, and yields.",
+  "image": "https://pasapay.vercel.app/logo.webp",
+  "endpoints": [
+    { "type": "chat", "url": "https://pasapay.vercel.app/chat" },
+    { "type": "api", "url": "https://pasapay.vercel.app/api/chat" }
+  ],
+  "supportedTrust": [
+    "reputation"
+  ]
+}

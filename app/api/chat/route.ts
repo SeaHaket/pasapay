@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI, SchemaType, type ModelParams } from "@google/generative-ai";
-import { parseUnits, encodeFunctionData, erc20Abi } from "viem";
+import { parseUnits, encodeFunctionData, erc20Abi, createPublicClient, http } from "viem";
+import { celo } from "viem/chains";
 import {
   USDT_ADDRESS,
   USDT_FEE_CURRENCY,
@@ -43,11 +44,11 @@ Strict guidelines and rules you must abide by:
      [TX_DATA]<JSON_STRING>[/TX_DATA]
      Where <JSON_STRING> is the exact, valid JSON array of transactions returned by the tool. Do not include markdown code block formatting (such as \`\`\`json) inside the [TX_DATA] tags; just output the raw JSON string on a single line.
 
-4. DEFI APY INTEGRITY (NO YIELD HALLUCINATIONS):
-   - Never guess, estimate, or hallucinate vault APYs.
-    - Morpho Blue (Feather USDT Vault) is currently offering 4.74% APY (isolated yield).
-    - Aave V3 is currently offering 4.25% APY (deep liquidity).
-   - Use the get_vault_apys tool to check live yields if asked. If the tool is not executed or fails, strictly state they are estimates.
+ 4. DEFI APY INTEGRITY (NO YIELD HALLUCINATIONS):
+    - Never guess, estimate, or hallucinate vault APYs.
+    - ALWAYS call the get_vault_apys tool before quoting any APY value. The rates change frequently.
+    - If the tool call fails, clearly state that live rates are temporarily unavailable and advise the user to check the Vault page directly.
+    - Never hardcode or memorize specific APY numbers — they are always dynamic.
 
  5. TRANSACTION HISTORY LOOKUPS:
     - When asked about past spending, transaction status, or totals, inspect the "User's Recent Transaction History" block provided in your context. Name the exact date, amount, or recipient from that log.
@@ -82,9 +83,69 @@ export async function POST(req: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    const { messages, history: userHistory, walletAddress, balances, quickContacts, vaultBalances, exchangeRate, currencyCode } = await req.json();
+    const body = await req.json();
+    const { messages, history: userHistory, walletAddress, balances, quickContacts, vaultBalances, exchangeRate, currencyCode } = body;
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid messages array" }, { status: 400 });
+    }
+
+    // x402 Micropayments verification for premium queries
+    const lastUserMsg = messages[messages.length - 1]?.content || "";
+    const PREMIUM_PRICE = "0.05";
+    const FEE_DESTINATION = (process.env.NEXT_PUBLIC_PASAPAY_FEE_ADDRESS || "0x3cbf3d4442d1c87498c36484E0228eE1dbc95EC0").toLowerCase();
+    const isPremium = lastUserMsg.toLowerCase().includes("predict") ||
+                      lastUserMsg.toLowerCase().includes("forecast") ||
+                      lastUserMsg.toLowerCase().includes("optimize") ||
+                      lastUserMsg.toLowerCase().includes("premium");
+
+    if (isPremium) {
+      const txHash = req.headers.get("x-payment-tx");
+      if (!txHash) {
+        return NextResponse.json({
+          error: "Payment Required",
+          price: PREMIUM_PRICE,
+          currency: "USDT",
+          destination: FEE_DESTINATION
+        }, { status: 402 });
+      }
+
+      // Verify payment on-chain with amount and destination validation
+      try {
+        const client = createPublicClient({
+          chain: celo,
+          transport: http(process.env.NEXT_PUBLIC_CELO_RPC || "https://forno.celo.org"),
+        });
+        const receipt = await client.getTransactionReceipt({ hash: txHash as `0x${string}` });
+        if (receipt.status !== "success") {
+          return NextResponse.json({ error: "Payment transaction failed on-chain" }, { status: 402 });
+        }
+
+        // Validate that the tx actually transferred USDT to our fee address
+        // ERC-20 Transfer event: Transfer(address indexed from, address indexed to, uint256 value)
+        const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+        const usdtLower = USDT_ADDRESS.toLowerCase();
+        const transferLog = receipt.logs.find(
+          (log) =>
+            log.address.toLowerCase() === usdtLower &&
+            log.topics[0] === TRANSFER_TOPIC &&
+            log.topics[2] &&
+            ("0x" + log.topics[2].slice(26)).toLowerCase() === FEE_DESTINATION
+        );
+
+        if (!transferLog) {
+          return NextResponse.json({ error: "Payment not sent to the correct destination" }, { status: 402 });
+        }
+
+        // Verify minimum amount (0.05 USDT = 50000 in 6 decimals)
+        const paidAmount = BigInt(transferLog.data);
+        const requiredAmount = parseUnits(PREMIUM_PRICE, 6);
+        if (paidAmount < requiredAmount) {
+          return NextResponse.json({ error: "Insufficient payment amount" }, { status: 402 });
+        }
+      } catch (err: any) {
+        console.error("Failed to verify x402 payment:", err);
+        return NextResponse.json({ error: "Payment verification failed. Please try again." }, { status: 402 });
+      }
     }
 
     // Dynamic system prompt combining constant system instructions and real-time transaction history
@@ -102,10 +163,24 @@ export async function POST(req: NextRequest) {
       dynamicSystemPrompt += `\n\nUser's Quick Send Details (Top Contacts):\n${JSON.stringify(quickContacts, null, 2)}`;
     }
     if (vaultBalances) {
-      dynamicSystemPrompt += `\n\nUser's Deposited Vault Balances (Earnings):\n- Aave V3 Savings Vault: $${Number(vaultBalances.aave).toFixed(2)} USDT (earning 4.25% APY)\n- Morpho Blue Savings Vault: $${Number(vaultBalances.morpho).toFixed(2)} USDT (earning 4.74% APY)`;
+      // Fetch live APYs to include in the context (so the AI always has current rates)
+      let liveAaveApy = 0;
+      let liveMorphoApy = 0;
+      try {
+        const liveApys = await getLiveAPYs();
+        liveAaveApy = liveApys.aave;
+        liveMorphoApy = liveApys.morpho;
+      } catch {
+        // non-blocking
+      }
+      dynamicSystemPrompt += `\n\nUser's Deposited Vault Balances (Earnings):\n- Aave V3 Savings Vault: $${Number(vaultBalances.aave).toFixed(2)} USDT (currently earning ${liveAaveApy.toFixed(2)}% APY)\n- Morpho Blue Savings Vault: $${Number(vaultBalances.morpho).toFixed(2)} USDT (currently earning ${liveMorphoApy.toFixed(2)}% APY)\n\nLive APY Rates (fetched just now):\n- Aave V3: ${liveAaveApy.toFixed(2)}% APY\n- Morpho Blue (Feather): ${liveMorphoApy.toFixed(2)}% APY`;
     }
     if (exchangeRate && currencyCode) {
       dynamicSystemPrompt += `\n\nActive Local Currency: ${currencyCode}\nExchange Rate: 1 USD = ${exchangeRate} ${currencyCode}`;
+    }
+
+    if (isPremium) {
+      dynamicSystemPrompt += `\n\n[x402 Micropayment Verified]: The user has paid a micropayment of $0.05 USDT to access this premium request. You are permitted to override the 3-sentence response length limit. Provide an incredibly detailed, high-value, professional yield forecast and savings vault optimization plan.`;
     }
 
     const modelOptions: ModelParams = {
