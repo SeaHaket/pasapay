@@ -2,8 +2,7 @@
 import { useState, useCallback } from "react";
 import {
   ChevronLeft, ChevronDown, ChevronUp, Copy, Check,
-  Building2, User, CreditCard, CheckCircle2, RotateCcw,
-  Ship, ArrowRight, ClipboardPaste, ExternalLink, Wallet
+  Ship, ArrowRight, ClipboardPaste
 } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useMiniPay } from "@/hooks/useMiniPay";
@@ -257,17 +256,6 @@ export default function DepositGuidePage() {
     if (i + 1 < steps.length) setActiveStep(i + 1);
   };
 
-  const openMiniPayDeposit = () => {
-    // Try deep-link to MiniPay's Add Money screen; fallback to alert
-    try {
-      // MiniPay runs dApps in a webview — going "back" returns to MiniPay home
-      // We can also try the celo:// URI scheme
-      window.open("celo://wallet/add", "_blank");
-    } catch {
-      alert("Go back to your MiniPay home screen and tap \"Add Money\" → \"Bank Transfer\" to see your bank details.");
-    }
-  };
-
   // ─── Steps ───────────────────────────────────────────────────────────────────
 
   const steps: StepConfig[] = [
@@ -283,25 +271,6 @@ export default function DepositGuidePage() {
             <MiniStep n="3">Select <strong>&quot;Bank Transfer&quot;</strong> as your method</MiniStep>
             <MiniStep n="4">You&apos;ll see your <strong>bank account details</strong> — keep this screen open</MiniStep>
           </div>
-
-          {/* Deep-link button to MiniPay deposit */}
-          <button
-            onClick={openMiniPayDeposit}
-            style={{
-              width: "100%", padding: "14px", borderRadius: 12,
-              background: "linear-gradient(135deg, #0a2e1a, #0f3d24)",
-              border: "1px solid rgba(0,200,83,0.3)",
-              color: "var(--text)", fontWeight: 700, fontSize: 14,
-              cursor: "pointer", display: "flex", alignItems: "center",
-              justifyContent: "center", gap: 10,
-              boxShadow: "0 0 16px rgba(0,200,83,0.15)",
-              transition: "all 0.2s",
-            }}
-          >
-            <Wallet size={18} color="var(--green)" />
-            Open MiniPay Deposit Screen
-            <ExternalLink size={13} color="var(--text-secondary)" />
-          </button>
 
           {address && (
             <div style={{
