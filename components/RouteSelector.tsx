@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Smartphone, CircleDollarSign, Coins, Landmark } from "lucide-react";
 import { OfframpProvider } from "@/config/countries";
 
-export type SendRoute = OfframpProvider | "vault" | "vault_aave" | "vault_morpho";
+export type SendRoute = OfframpProvider | "vault" | "vault_aave" | "vault_morpho" | "gcash" | "pdax";
 
 type Props = {
   selected: SendRoute | null;
@@ -36,6 +36,9 @@ export default function RouteSelector({ selected, onSelect, supported, localCryp
   const t = useTranslations("send");
   const [shownNote, setShownNote] = useState<SendRoute | null>(null);
 
+  const isMinipaySelected = selected === "minipay" || selected === "gcash" || selected === "pdax";
+  const [minipayExpanded, setMinipayExpanded] = useState(isMinipaySelected);
+
   const visibleRoutes = ROUTES.filter(r => supported.includes(r.id as OfframpProvider));
 
   return (
@@ -45,13 +48,17 @@ export default function RouteSelector({ selected, onSelect, supported, localCryp
         const isDynamicRoute = r.id === "transak" || r.id === "fonbnk";
         const isDisabled = r.comingSoon === true;
 
+        const isCurrentSelected = r.id === "minipay" ? isMinipaySelected : selected === r.id;
+
         return (
           <div key={r.id}>
             <button
-              className={`route-card${selected === r.id && !isDisabled ? " route-card--selected" : ""}`}
+              className={`route-card${isCurrentSelected && !isDisabled ? " route-card--selected" : ""}`}
               onClick={() => {
                 if (isDisabled) {
                   setShownNote(prev => prev === r.id ? null : r.id);
+                } else if (r.id === "minipay" && currencyCode === "PHP") {
+                  setMinipayExpanded(prev => !prev);
                 } else {
                   setShownNote(null);
                   onSelect(r.id);
@@ -78,8 +85,68 @@ export default function RouteSelector({ selected, onSelect, supported, localCryp
                     : t(r.descKey as any)}
                 </div>
               </div>
-              <div className="route-card__arrow">›</div>
+              <div className="route-card__arrow" style={{ transform: (r.id === "minipay" && currencyCode === "PHP" && minipayExpanded) ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>›</div>
             </button>
+
+            {r.id === "minipay" && currencyCode === "PHP" && minipayExpanded && (
+              <div style={{
+                margin: "4px 0 10px 16px",
+                padding: "8px 0 8px 12px",
+                borderLeft: "2px solid var(--green)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}>
+                <button
+                  className={`route-card${selected === "minipay" ? " route-card--selected" : ""}`}
+                  onClick={() => onSelect("minipay")}
+                  style={{ width: "100%", background: "none", textAlign: "left", padding: "10px 14px" }}
+                >
+                  <div className="route-card__info" style={{ marginLeft: 0 }}>
+                    <div className="route-card__title" style={{ fontSize: 13, fontWeight: 700 }}>
+                      {t("routeMinipayUser")}
+                    </div>
+                    <div className="route-card__desc" style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      {t("routeMinipayUserDesc")}
+                    </div>
+                  </div>
+                  <div className="route-card__arrow">›</div>
+                </button>
+
+                <button
+                  className={`route-card${selected === "gcash" ? " route-card--selected" : ""}`}
+                  onClick={() => onSelect("gcash")}
+                  style={{ width: "100%", background: "none", textAlign: "left", padding: "10px 14px" }}
+                >
+                  <div className="route-card__info" style={{ marginLeft: 0 }}>
+                    <div className="route-card__title" style={{ fontSize: 13, fontWeight: 700 }}>
+                      {t("routeGcashCelo")}
+                    </div>
+                    <div className="route-card__desc" style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      {t("routeGcashCeloDesc")}
+                    </div>
+                  </div>
+                  <div className="route-card__arrow">›</div>
+                </button>
+
+                <button
+                  className={`route-card${selected === "pdax" ? " route-card--selected" : ""}`}
+                  onClick={() => onSelect("pdax")}
+                  style={{ width: "100%", background: "none", textAlign: "left", padding: "10px 14px" }}
+                >
+                  <div className="route-card__info" style={{ marginLeft: 0 }}>
+                    <div className="route-card__title" style={{ fontSize: 13, fontWeight: 700 }}>
+                      {t("routePdaxCelo")}
+                    </div>
+                    <div className="route-card__desc" style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      {t("routePdaxCeloDesc")}
+                    </div>
+                  </div>
+                  <div className="route-card__arrow">›</div>
+                </button>
+              </div>
+            )}
+
             {isDisabled && shownNote === r.id && (
               <div style={{
                 margin: "4px 0 4px 0",

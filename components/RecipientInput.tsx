@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { ScanLine, Settings } from "lucide-react";
 import { truncateAddress } from "@/lib/celoscan";
-import { OfframpProvider } from "@/config/countries";
+import { type SendRoute } from "./RouteSelector";
 import dynamic from "next/dynamic";
 
 const QrScannerModal = dynamic(() => import("@/components/QrScannerModal"), { ssr: false });
@@ -17,7 +17,7 @@ export type Contact = {
 };
 
 type Props = {
-  route: OfframpProvider;
+  route: SendRoute;
   onResolved: (address: `0x${string}` | null, display: string) => void;
 };
 
@@ -77,7 +77,7 @@ export default function RecipientInput({ route, onResolved }: Props) {
     setShowManage(false);
     setContacts(loadContacts());
   }
-  const isWalletOnly = route === "localcrypto";
+  const isWalletOnly = route === "localcrypto" || route === "gcash" || route === "pdax";
   const isMiniPayEnv =
     typeof window !== "undefined" &&
     (window.ethereum as any)?.isMiniPay === true;
@@ -286,7 +286,9 @@ export default function RecipientInput({ route, onResolved }: Props) {
           </div>
         )}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label className="input-label" style={{ margin: 0 }}>{t("recipientWallet")}</label>
+          <label className="input-label" style={{ margin: 0 }}>
+            {route === "gcash" ? "GCash Celo Deposit Address" : route === "pdax" ? "PDAX Celo Deposit Address" : t("recipientWallet")}
+          </label>
           <button
             className="btn btn--ghost"
             onClick={() => setShowQr(true)}
@@ -298,7 +300,13 @@ export default function RecipientInput({ route, onResolved }: Props) {
         <input
           id="recipient-wallet"
           className={`input-field${error ? " input-field--error" : ""}`}
-          placeholder={t("recipientWalletPlaceholder")}
+          placeholder={
+            route === "gcash"
+              ? "Paste GCash deposit address (0x...)"
+              : route === "pdax"
+              ? "Paste PDAX deposit address (0x...)"
+              : t("recipientWalletPlaceholder")
+          }
           value={walletValue}
           onChange={e => handleWalletChange(e.target.value)}
           autoComplete="off"
@@ -306,14 +314,39 @@ export default function RecipientInput({ route, onResolved }: Props) {
         />
         {error && <p style={{ color: "var(--error)", fontSize: 12, marginTop: 4 }}>{error}</p>}
         {isValid && <SaveForm addr={walletValue} displayValue={truncateAddress(walletValue)} />}
-        <div style={{ marginTop: 12, padding: "12px", borderRadius: "8px", background: "rgba(255, 152, 0, 0.1)", border: "1px solid rgba(255, 152, 0, 0.3)" }}>
-          <p style={{ color: "#FF9800", fontSize: 13, lineHeight: 1.4, margin: 0, display: "flex", gap: 6, alignItems: "flex-start" }}>
-            <span style={{ fontSize: 16 }}>⚠️</span>
-            <span>
-              <strong>Important:</strong> Paste a <strong>BNB Smart Chain (BSC)</strong> network address from your local exchange account. Do not use other networks or your funds will be lost!
-            </span>
-          </p>
-        </div>
+        
+        {route === "localcrypto" && (
+          <div style={{ marginTop: 12, padding: "12px", borderRadius: "8px", background: "rgba(255, 152, 0, 0.1)", border: "1px solid rgba(255, 152, 0, 0.3)" }}>
+            <p style={{ color: "#FF9800", fontSize: 13, lineHeight: 1.4, margin: 0, display: "flex", gap: 6, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 16 }}>⚠️</span>
+              <span>
+                <strong>Important:</strong> Paste a <strong>BNB Smart Chain (BSC)</strong> network address from your local exchange account. Do not use other networks or your funds will be lost!
+              </span>
+            </p>
+          </div>
+        )}
+        
+        {route === "gcash" && (
+          <div style={{ marginTop: 12, padding: "12px", borderRadius: "8px", background: "rgba(13, 71, 161, 0.1)", border: "1px solid rgba(13, 71, 161, 0.3)" }}>
+            <p style={{ color: "#2196F3", fontSize: 13, lineHeight: 1.4, margin: 0, display: "flex", gap: 6, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 16 }}>⚠️</span>
+              <span>
+                <strong>Important:</strong> Paste your <strong>GCash (GCrypto) Celo network</strong> deposit address. Make sure to only send USDT on Celo. Sending on other networks will cause permanent loss of funds!
+              </span>
+            </p>
+          </div>
+        )}
+        
+        {route === "pdax" && (
+          <div style={{ marginTop: 12, padding: "12px", borderRadius: "8px", background: "rgba(230, 81, 0, 0.1)", border: "1px solid rgba(230, 81, 0, 0.3)" }}>
+            <p style={{ color: "#FF9800", fontSize: 13, lineHeight: 1.4, margin: 0, display: "flex", gap: 6, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 16 }}>⚠️</span>
+              <span>
+                <strong>Important:</strong> Paste your <strong>PDAX Celo network</strong> deposit address. Make sure to only send USDT on Celo. Sending on other networks will cause permanent loss of funds!
+              </span>
+            </p>
+          </div>
+        )}
 
         {showManage && (
           <ManageContactsModal

@@ -45,7 +45,7 @@ export default function SendPage() {
       try {
         const qs = JSON.parse(raw);
         const VALID_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-        const VALID_ROUTES: SendRoute[] = ["minipay", "localcrypto", "transak", "fonbnk"];
+        const VALID_ROUTES: SendRoute[] = ["minipay", "localcrypto", "transak", "fonbnk", "gcash", "pdax"];
         const VALID_COUNTRIES = /^[A-Z]{2}$/;
         // Reject the payload if the address is present but malformed
         if (qs.recipientAddress && !VALID_ADDRESS.test(qs.recipientAddress)) return;
@@ -260,7 +260,7 @@ export default function SendPage() {
           <>
             <p className="section-title">{t("to")}</p>
             <RecipientInput
-              route={(route && route.startsWith("vault") ? "minipay" : (route ?? "minipay")) as OfframpProvider}
+              route={(route && route.startsWith("vault") ? "minipay" : (route ?? "minipay")) as SendRoute}
               onResolved={(addr, display) => { setRecipientAddress(addr); setRecipientDisplay(display); }}
             />
             <button

@@ -12,6 +12,8 @@ const ROUTE_LABELS: Record<string, string> = {
   localcrypto: "Local Exchange",
   fonbnk: "Fonbnk",
   transak: "Bank Transfer",
+  gcash: "GCash (Celo)",
+  pdax: "PDAX (Celo)",
 };
 
 const ROUTE_COLORS: Record<string, string> = {
@@ -19,6 +21,8 @@ const ROUTE_COLORS: Record<string, string> = {
   localcrypto: "#FF9800",
   fonbnk: "#9C27B0",
   transak: "#2196F3",
+  gcash: "#007FEF",
+  pdax: "#FF5722",
 };
 
 function truncateHash(hash: string) {

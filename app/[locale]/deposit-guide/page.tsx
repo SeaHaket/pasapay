@@ -272,19 +272,6 @@ export default function DepositGuidePage() {
             <MiniStep n="4">You&apos;ll see your <strong>bank account details</strong> — keep this screen open</MiniStep>
           </div>
 
-          {address && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "10px 14px", background: "rgba(0,200,83,0.06)",
-              borderRadius: 10, border: "1px solid rgba(0,200,83,0.15)",
-            }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", flexShrink: 0 }} />
-              <div>
-                <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0, fontWeight: 600, textTransform: "uppercase" }}>Your wallet</p>
-                <p style={{ fontSize: 12, color: "var(--text)", margin: "1px 0 0", fontFamily: "monospace", wordBreak: "break-all" }}>{address}</p>
-              </div>
-            </div>
-          )}
 
           <Tip>
             <strong>Keep MiniPay&apos;s deposit screen open</strong> — you&apos;ll paste the bank details into this guide in the next steps. Then copy them into Brightwell.
@@ -339,11 +326,11 @@ export default function DepositGuidePage() {
             </p>
           </div>
 
-          <PasteField label="Recipient full name" value={beneficiary.name} onChange={(v) => setBeneficiary(p => ({ ...p, name: v }))} placeholder="e.g. Juan Dela Cruz" />
-          <PasteField label="Recipient street address" value={beneficiary.street} onChange={(v) => setBeneficiary(p => ({ ...p, street: v }))} placeholder="e.g. 123 Main St" />
-          <PasteField label="Recipient city" value={beneficiary.city} onChange={(v) => setBeneficiary(p => ({ ...p, city: v }))} placeholder="e.g. Mandaluyong City" />
+          <PasteField label="Recipient full name" value={beneficiary.name} onChange={(v) => setBeneficiary(p => ({ ...p, name: v }))} placeholder="e.g. Maria Santos" />
+          <PasteField label="Recipient street address" value={beneficiary.street} onChange={(v) => setBeneficiary(p => ({ ...p, street: v }))} placeholder="e.g. 789 Maple Ave" />
+          <PasteField label="Recipient city" value={beneficiary.city} onChange={(v) => setBeneficiary(p => ({ ...p, city: v }))} placeholder="e.g. Quezon City" />
           <PasteField label="Recipient state or province" value={beneficiary.state} onChange={(v) => setBeneficiary(p => ({ ...p, state: v }))} placeholder="e.g. Metro Manila" />
-          <PasteField label="Recipient postal/zip code" value={beneficiary.zip} onChange={(v) => setBeneficiary(p => ({ ...p, zip: v }))} placeholder="e.g. 1550" />
+          <PasteField label="Recipient postal/zip code" value={beneficiary.zip} onChange={(v) => setBeneficiary(p => ({ ...p, zip: v }))} placeholder="e.g. 1100" />
           <CopyableField label="Recipient country" value="Philippines" />
           <CopyableField label="Payment reference" value="Leave blank" />
           <CopyableField label="Recipient phone number" value="Leave blank" />
@@ -374,17 +361,17 @@ export default function DepositGuidePage() {
             </p>
           </div>
 
-          <PasteField label="Bank name" value={bank.name} onChange={(v) => setBank(p => ({ ...p, name: v }))} placeholder="e.g. Lead Bank" />
+          <PasteField label="Bank name" value={bank.name} onChange={(v) => setBank(p => ({ ...p, name: v }))} placeholder="e.g. Horizon Trust Bank" />
           <CopyableField label="Bank branch name" value="Leave blank" />
-          <PasteField label="Bank street address" value={bank.street} onChange={(v) => setBank(p => ({ ...p, street: v }))} placeholder="e.g. 1801 Main St" />
-          <PasteField label="Bank city" value={bank.city} onChange={(v) => setBank(p => ({ ...p, city: v }))} placeholder="e.g. Kansas City" />
-          <PasteField label="Bank state or province" value={bank.state} onChange={(v) => setBank(p => ({ ...p, state: v }))} placeholder="e.g. Missouri" />
-          <PasteField label="Bank postal/zip code" value={bank.zip} onChange={(v) => setBank(p => ({ ...p, zip: v }))} placeholder="e.g. 64108" />
+          <PasteField label="Bank street address" value={bank.street} onChange={(v) => setBank(p => ({ ...p, street: v }))} placeholder="e.g. 456 Pine St" />
+          <PasteField label="Bank city" value={bank.city} onChange={(v) => setBank(p => ({ ...p, city: v }))} placeholder="e.g. Seattle" />
+          <PasteField label="Bank state or province" value={bank.state} onChange={(v) => setBank(p => ({ ...p, state: v }))} placeholder="e.g. Washington" />
+          <PasteField label="Bank postal/zip code" value={bank.zip} onChange={(v) => setBank(p => ({ ...p, zip: v }))} placeholder="e.g. 98101" />
           <CopyableField label="Bank country" value="United States" />
-          <PasteField label="Bank local routing number" value={bank.routing} onChange={(v) => setBank(p => ({ ...p, routing: v }))} placeholder="e.g. 101019644" />
+          <PasteField label="Bank local routing number" value={bank.routing} onChange={(v) => setBank(p => ({ ...p, routing: v }))} placeholder="e.g. 121000248" />
           <CopyableField label="Bank SWIFT code" value="Leave blank" />
           <CopyableField label="Bank SWIFT branch details" value="Leave blank" />
-          <PasteField label="Bank account number / IBAN" value={bank.account} onChange={(v) => setBank(p => ({ ...p, account: v }))} placeholder="e.g. 212102419986" />
+          <PasteField label="Bank account number / IBAN" value={bank.account} onChange={(v) => setBank(p => ({ ...p, account: v }))} placeholder="e.g. 987654321098" />
 
           <Tip>
             <strong>Double-check the routing and account numbers</strong> — these are the most critical fields. One wrong digit means your wages won&apos;t arrive.

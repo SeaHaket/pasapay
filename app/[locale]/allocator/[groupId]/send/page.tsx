@@ -39,8 +39,8 @@ export default function AllocatorSendPage({ params }: Props) {
     setRows(g.recipients.map((r) => ({ recipient: r, amount: r.defaultAmount, status: "pending" })));
   }, [groupId]);
 
-  const cryptoRows = rows.filter((r) => r.recipient.route === "minipay" || r.recipient.route.startsWith("vault"));
-  const externalRows = rows.filter((r) => r.recipient.route !== "minipay" && !r.recipient.route.startsWith("vault"));
+  const cryptoRows = rows.filter((r) => r.recipient.route === "minipay" || r.recipient.route === "gcash" || r.recipient.route === "pdax" || r.recipient.route.startsWith("vault"));
+  const externalRows = rows.filter((r) => r.recipient.route !== "minipay" && r.recipient.route !== "gcash" && r.recipient.route !== "pdax" && !r.recipient.route.startsWith("vault"));
 
   const allCryptoDone = cryptoRows.every((r) => r.status === "done" || r.status === "error");
   const totalUsd = rows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
@@ -58,7 +58,7 @@ export default function AllocatorSendPage({ params }: Props) {
     const { decimals, symbol, feeCurrency, address: tokenAddress } = preferred;
 
     // Separate standard minipay transfers and vault deposits
-    const directSendRows = cryptoRows.filter((r) => r.recipient.route === "minipay" && r.status !== "done");
+    const directSendRows = cryptoRows.filter((r) => (r.recipient.route === "minipay" || r.recipient.route === "gcash" || r.recipient.route === "pdax") && r.status !== "done");
     const vaultRows = cryptoRows.filter((r) => r.recipient.route.startsWith("vault") && r.status !== "done");
 
     // 1. Process standard direct sends in a single batch transaction

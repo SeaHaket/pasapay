@@ -4,8 +4,9 @@ import { ChevronLeft, Plus, Trash2, Check } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { getGroup, upsertGroup, type AllocatorGroup, type AllocatorRecipient } from "@/lib/allocator";
 import { COUNTRIES, getCountryConfig, type OfframpProvider } from "@/config/countries";
+import { type SendRoute } from "@/components/RouteSelector";
 
-const ROUTE_LABELS: Record<OfframpProvider | "vault" | "vault_aave" | "vault_morpho", string> = {
+const ROUTE_LABELS: Record<string, string> = {
   minipay: "MiniPay",
   fonbnk: "Fonbnk",
   localcrypto: "Local Crypto",
@@ -13,6 +14,8 @@ const ROUTE_LABELS: Record<OfframpProvider | "vault" | "vault_aave" | "vault_mor
   vault: "Savings Vault (Aave V3)",
   vault_aave: "Savings Vault (Aave V3)",
   vault_morpho: "Savings Vault (Morpho / Feather)",
+  gcash: "GCash (Celo)",
+  pdax: "PDAX (Celo)",
 };
 
 function makeId(): string {
@@ -21,7 +24,7 @@ function makeId(): string {
 
 type AddForm = {
   name: string;
-  route: OfframpProvider | "vault" | "vault_aave" | "vault_morpho";
+  route: SendRoute;
   countryId: string;
   recipientAddress: string;
   recipientDisplay: string;
@@ -268,6 +271,12 @@ export default function EditGroupPage({ params }: Props) {
                 {supportedRoutes.map((r) => (
                   <option key={r} value={r}>{ROUTE_LABELS[r]}</option>
                 ))}
+                {form.countryId === "PH" && (
+                  <>
+                    <option value="gcash">GCash (USDT via Celo)</option>
+                    <option value="pdax">PDAX (USDT via Celo)</option>
+                  </>
+                )}
                 <option value="vault_aave">Savings Vault (Aave V3)</option>
                 <option value="vault_morpho">Savings Vault (Morpho / Feather)</option>
               </select>
