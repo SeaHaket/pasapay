@@ -57,8 +57,21 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
       fromAmount: amountRaw.toString(),
       fromAddress,
       toAddress,
+      options: {
+        // MiniPay users have no native CELO — avoid routes that need msg.value
+        allowSwitchChain: false,
+        order: "SAFEST",
+      },
     });
-    const route = result.routes?.[0];
+    // Filter to routes whose steps don't require native token value.
+    // LI.fi routes that include a non-zero transactionRequest.value will
+    // revert on MiniPay because users hold no native CELO (fee abstraction).
+    const safeRoutes = (result.routes ?? []).filter((r) =>
+      r.steps.every(
+        (s) => !s.transactionRequest?.value || s.transactionRequest.value === "0" || s.transactionRequest.value === "0x0",
+      ),
+    );
+    const route = safeRoutes[0] ?? result.routes?.[0];
     if (!route) return null;
     const fromAmt = Number(route.fromAmount) / 10 ** fromDecimals;
     const toAmt = Number(route.toAmount) / 10 ** 18;
@@ -142,11 +155,24 @@ export async function executeBridge(
     // Submit the bridge transaction
     if (onStatus) onStatus("Bridging to BNB Smart Chain...");
     const txReq = freshStep.transactionRequest;
+
+    // Guard: MiniPay users use stablecoin fee abstraction and carry no native
+    // CELO. If the bridge tx requires a non-zero msg.value, it will revert
+    // with "execution reverted" during eth_estimateGas. Reject early with a
+    // clear message instead of letting the RPC call fail opaquely.
+    const requiredValue = txReq.value ? BigInt(txReq.value as string) : 0n;
+    if (requiredValue > 0n) {
+      throw new Error(
+        "This bridge route requires native CELO which is not available in MiniPay. " +
+        "Please try a smaller amount or try again later for a different route."
+      );
+    }
+
     const bridgeHash = await walletClient.sendTransaction({
       account: address,
       to: txReq.to as `0x${string}`,
       data: txReq.data as `0x${string}`,
-      value: txReq.value ? BigInt(txReq.value as string) : 0n,
+      value: 0n,
       feeCurrency,
     });
 

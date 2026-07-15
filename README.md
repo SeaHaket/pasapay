@@ -37,7 +37,7 @@ PasaPay is designed for global workers and maritime employees (seafarers) who re
 |-------|----------|-------------|
 | MiniPay | Global | Direct on-chain transfer to another MiniPay wallet |
 | Fonbnk | 9 African countries (NG, KE, GH, ZA, UG, TZ, RW, SN, CM) | Cash out to mobile money (M-Pesa, OPay, MTN, etc.) |
-| Local Crypto | PH, and others | Bridge to Arbitrum USDT, then to local exchange (Coins.ph, Tokocrypto, etc.) |
+| Local Crypto | PH, and others | Bridge to BSC USDT, then to local exchange (Coins.ph, Tokocrypto, etc.) |
 | Transak | Global | Bank / e-wallet withdrawal (coming soon) |
 
 ---
@@ -62,7 +62,7 @@ Deposit flow: `approve(Pool, amount)` → `supply(asset, amount, user, 0)`. With
 |-------|-----------|
 | Framework | Next.js 16 (App Router) |
 | Styling | Vanilla CSS — mobile-first, 430px max-width |
-| Web3 | viem, Celo, Arbitrum |
+| Web3 | viem, Celo, BSC |
 | DeFi | Aave v3 on Celo |
 | Localization | next-intl (English + Filipino) |
 | Offramp | LI.fi SDK, Fonbnk, Transak |

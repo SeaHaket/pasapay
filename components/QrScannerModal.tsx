@@ -8,7 +8,7 @@ const WALLET_RE = /^0x[0-9a-fA-F]{40}$/;
 
 function parseAddress(raw: string): string | null {
   const stripped = raw
-    .replace(/^(ethereum|celo|arbitrum|bsc|binance|eip155:\d+):/i, "")
+    .replace(/^(ethereum|celo|bsc|binance|eip155:\d+):/i, "")
     .split("?")[0]
     .split("@")[0]
     .trim();

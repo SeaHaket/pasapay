@@ -67,7 +67,7 @@
     "manageContactsLink": "Manage",
     "manageContacts": "Manage Saved Wallets",
     "manageContactsDesc": "Rename or delete your saved contacts and recipient wallets",
-    "noSavedContacts": "No saved contacts found for this offramp option."
+    "noSavedContacts": "No saved contacts found for this withdrawal option."
   },
   "confirm": {
     "title": "Confirm Transfer",
