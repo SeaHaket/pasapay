@@ -15,10 +15,19 @@ async function getSdk() {
       ? `${window.location.origin}/api/lifi`
       : undefined;
     // fee: 0.0025 = 0.25% integrator fee — requires LI.fi partner approval to activate
+    //
+    // bridges.deny: ["squid"] — Squid (Axelar) routes require the user to pay a
+    // cross-chain relayer gas fee as native msg.value on the SOURCE chain (CELO
+    // here), on top of the stablecoin being bridged. MiniPay wallets are
+    // stablecoin-gas-only by design (CIP-64) and typically hold ~0 native CELO,
+    // so any Squid route always fails eth_estimateGas with an "insufficient
+    // funds" revert. Denying it here too (defense in depth alongside the
+    // per-call options.bridges.deny below) keeps LI.fi routing to bridges that
+    // don't require native-token value.
     _sdk.createConfig({
       integrator: "PasaPay",
       ...(apiUrl ? { apiUrl } : {}),
-      routeOptions: { fee: 0.0025 },
+      routeOptions: { fee: 0.0025, bridges: { deny: ["squid"] } },
     });
   }
   return _sdk;
@@ -64,9 +73,12 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
         // Squid (Axelar GMP) hardcodes native CELO as msg.value on every route;
         // deny it at the API level so LI.Fi can surface other bridges (Allbridge,
         // Stargate) or return null cleanly so useBridge falls back to Relay.
+        // NOTE: this must be nested under `bridges.deny`, not a flat
+        // `denyBridges` key — options is typed as RouteOptions, same shape
+        // as the routeOptions passed to createConfig() above.
         allowSwitchChain: false,
-        order: "SAFEST",
-        denyBridges: ["squid"],
+        order: "CHEAPEST", // "SAFEST" is deprecated as of LI.fi API v28.06.24
+        bridges: { deny: ["squid"] },
       },
     });
     // Filter to routes whose steps don't require native token value.
