@@ -60,9 +60,13 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
       fromAddress,
       toAddress,
       options: {
-        // MiniPay users have no native CELO — avoid routes that need msg.value
+        // MiniPay users have no native CELO — avoid routes that need msg.value.
+        // Squid (Axelar GMP) hardcodes native CELO as msg.value on every route;
+        // deny it at the API level so LI.Fi can surface other bridges (Allbridge,
+        // Stargate) or return null cleanly so useBridge falls back to Relay.
         allowSwitchChain: false,
         order: "SAFEST",
+        denyBridges: ["squid"],
       },
     });
     // Filter to routes whose steps don't require native token value.
