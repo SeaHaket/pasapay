@@ -25,10 +25,12 @@ async function getSdk() {
 }
 
 export type BridgeQuote = {
-  route: Route;
+  provider: "lifi" | "relay";
+  route: Route; // LI.Fi route — present only when provider === "lifi"
   fromAmountUsd: string;
   toAmountUsdt: string;
   toAmountLocal: string;
+  toTokenSymbol: string;
   bridgeFeeUsd: string;
   networkFeeUsd: string;
   totalFeeUsd: string;
@@ -66,13 +68,23 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
     // Filter to routes whose steps don't require native token value.
     // LI.fi routes that include a non-zero transactionRequest.value will
     // revert on MiniPay because users hold no native CELO (fee abstraction).
+    // Parse the value robustly — it may be a decimal string, a hex string,
+    // or undefined. Treat any non-zero value as unsafe.
+    const parseValue = (v: unknown): bigint => {
+      if (!v) return 0n;
+      const s = String(v);
+      if (s === "0" || s === "0x" || s === "0x0") return 0n;
+      try {
+        return s.startsWith("0x") ? BigInt(s) : BigInt(s);
+      } catch {
+        return 0n;
+      }
+    };
     const safeRoutes = (result.routes ?? []).filter((r) =>
-      r.steps.every(
-        (s) => !s.transactionRequest?.value || s.transactionRequest.value === "0" || s.transactionRequest.value === "0x0",
-      ),
+      r.steps.every((s) => parseValue(s.transactionRequest?.value) === 0n),
     );
-    const route = safeRoutes[0] ?? result.routes?.[0];
-    if (!route) return null;
+    const route = safeRoutes[0];
+    if (!route) return null; // no MiniPay-compatible route (all require native CELO)
     const fromAmt = Number(route.fromAmount) / 10 ** fromDecimals;
     const toAmt = Number(route.toAmount) / 10 ** 18;
     const gasCostUsd = route.gasCostUSD ?? "0";
@@ -84,10 +96,12 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
     const durationSec = route.steps.reduce((acc, s) => acc + (s.estimate.executionDuration ?? 0), 0);
     const bridge = route.steps[0]?.toolDetails?.name ?? "Bridge";
     return {
+      provider: "lifi",
       route,
       fromAmountUsd: fromAmt.toFixed(2),
       toAmountUsdt: toAmt.toFixed(4),
       toAmountLocal: (toAmt * exchangeRate).toFixed(2),
+      toTokenSymbol: route.steps[route.steps.length - 1]?.action.toToken.symbol ?? "USDT",
       bridgeFeeUsd: feeCostUsd.toFixed(4),
       networkFeeUsd: Number(gasCostUsd).toFixed(4),
       totalFeeUsd: totalFee.toFixed(4),
@@ -106,12 +120,13 @@ export async function getBridgeQuote(params: QuoteParams): Promise<BridgeQuote |
 // CIP-64 feeCurrency. Instead: fetch a fresh step transaction, handle approval
 // manually, then submit both txs through MiniPay's feeCurrency-aware path.
 export async function executeBridge(
-  route: Route,
+  quote: BridgeQuote,
   address: `0x${string}`,
   feeCurrency: `0x${string}`,
   onStatus?: (status: string) => void,
 ): Promise<{ txHash: string; success: boolean; error?: string }> {
   try {
+    const route = quote.route;
     const sdk = await getSdk();
     const { createWalletClient, createPublicClient, custom, http, encodeFunctionData, erc20Abi, maxUint256 } = await import("viem");
     const { celo } = await import("viem/chains");
@@ -160,7 +175,19 @@ export async function executeBridge(
     // CELO. If the bridge tx requires a non-zero msg.value, it will revert
     // with "execution reverted" during eth_estimateGas. Reject early with a
     // clear message instead of letting the RPC call fail opaquely.
-    const requiredValue = txReq.value ? BigInt(txReq.value as string) : 0n;
+    // The fresh step value may be a hex string (e.g. "0xBE9A...") or a decimal
+    // string — parse both forms defensively.
+    const parseRequiredValue = (v: unknown): bigint => {
+      if (!v) return 0n;
+      const s = String(v);
+      if (s === "0" || s === "0x" || s === "0x0") return 0n;
+      try {
+        return BigInt(s); // works for both "0xABC" and "12345" in modern JS
+      } catch {
+        return 0n;
+      }
+    };
+    const requiredValue = parseRequiredValue(txReq.value);
     if (requiredValue > 0n) {
       throw new Error(
         "This bridge route requires native CELO which is not available in MiniPay. " +

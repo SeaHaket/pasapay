@@ -6,7 +6,7 @@ import { parseUnits, encodeFunctionData, erc20Abi } from "viem";
 import { ChevronLeft } from "lucide-react";
 import { useMiniPay } from "@/hooks/useMiniPay";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
-import { useLifi } from "@/hooks/useLifi";
+import { useBridge } from "@/hooks/useBridge";
 import Numpad from "@/components/Numpad";
 import RouteSelector, { type SendRoute } from "@/components/RouteSelector";
 import RecipientInput from "@/components/RecipientInput";
@@ -14,6 +14,7 @@ import FeeBreakdown from "@/components/FeeBreakdown";
 import { MINIPAY_DEPOSIT_DEEPLINK } from "@/lib/constants";
 import { COUNTRIES, getCountryConfig, type OfframpProvider } from "@/config/countries";
 import { executeBridge } from "@/lib/lifi";
+import { executeRelayBridge } from "@/lib/relay";
 import { saveTransaction } from "@/lib/history";
 
 export default function SendPage() {
@@ -25,7 +26,7 @@ export default function SendPage() {
   const country = getCountryConfig(countryId);
   const { rate, toLocalFiat } = useExchangeRate(country.currencyCode);
   
-  const { quote, status: bridgeStatus, fetchQuote } = useLifi();
+  const { quote, status: bridgeStatus, fetchQuote } = useBridge();
 
   const [amount, setAmount] = useState("0");
   const [route, setRoute] = useState<SendRoute | null>(null);
@@ -106,8 +107,10 @@ export default function SendPage() {
       let chain: "celo" | "bsc" = "celo";
 
       if (route === "localcrypto" && quote?.route) {
-        const result = await executeBridge(
-          quote.route,
+        const executor =
+          quote.provider === "relay" ? executeRelayBridge : executeBridge;
+        const result = await executor(
+          quote,
           address,
           preferred.feeCurrency as `0x${string}`,
           (s) => setSendStep(s),
